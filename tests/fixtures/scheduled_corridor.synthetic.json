@@ -1,0 +1,72 @@
+{
+  "_meta": {
+    "dataBasis": "scheduled",
+    "source": "SYNTHETIC test fixture (NOT real transit data)",
+    "sourceUrl": "n/a",
+    "fetchedAt": "2025-01-01T00:00:00.000Z",
+    "generatedBy": "hand-written for tests/schedule_logic.test.js",
+    "serviceStart": "20250101",
+    "serviceEnd": "20251231",
+    "disclaimer": "SYNTHETIC data that mirrors the real generated schedule structure. Hand-authored to exercise calendar/overnight/transfer logic deterministically without redistributing real PATH/NJ TRANSIT data.",
+    "attribution": "Synthetic. Not derived from any operator feed."
+  },
+  "operators": [
+    { "id": "HBLR", "name": "Hudson-Bergen Light Rail", "shortName": "Light Rail", "color": "#2dd4bf" },
+    { "id": "PATH", "name": "PATH", "shortName": "PATH", "color": "#4d92fb" }
+  ],
+  "stations": [
+    { "id": "hblr_port_imperial", "operator": "HBLR", "name": "Port Imperial" },
+    { "id": "hblr_hoboken", "operator": "HBLR", "name": "Hoboken Terminal" },
+    { "id": "path_hoboken", "operator": "PATH", "name": "Hoboken" },
+    { "id": "path_9th", "operator": "PATH", "name": "9th Street" }
+  ],
+  "services": [
+    {
+      "id": "hblr_port_imperial_to_hblr_hoboken",
+      "operator": "HBLR",
+      "origin": "hblr_port_imperial",
+      "destination": "hblr_hoboken",
+      "direction": "Southbound toward Hoboken",
+      "line": "Light Rail",
+      "dataBasis": "scheduled",
+      "calendars": {
+        "wk": { "days": [1, 2, 3, 4, 5], "start": "20250101", "end": "20251231", "add": [], "except": [] },
+        "sat": { "days": [6], "start": "20250101", "end": "20251231", "add": [], "except": [] }
+      },
+      "trips": [
+        { "cal": "wk", "depMin": 476, "arrMin": 488 },
+        { "cal": "wk", "depMin": 488, "arrMin": 500 },
+        { "cal": "wk", "depMin": 1450, "arrMin": 1462 },
+        { "cal": "sat", "depMin": 540, "arrMin": 552 }
+      ]
+    },
+    {
+      "id": "path_hoboken_to_path_9th",
+      "operator": "PATH",
+      "origin": "path_hoboken",
+      "destination": "path_9th",
+      "direction": "33rd Street-bound (via Christopher St)",
+      "line": "PATH",
+      "dataBasis": "scheduled",
+      "calendars": {
+        "wk": { "days": [1, 2, 3, 4, 5], "start": "20250101", "end": "20251231", "add": [], "except": ["20250704"] }
+      },
+      "trips": [
+        { "cal": "wk", "depMin": 497, "arrMin": 507 },
+        { "cal": "wk", "depMin": 510, "arrMin": 520 },
+        { "cal": "wk", "depMin": 1549, "arrMin": 1559 }
+      ]
+    }
+  ],
+  "sampleCommutes": [
+    {
+      "id": "scheduled_morning_pi_9th",
+      "name": "Morning: Port Imperial \u2192 9th St (Scheduled)",
+      "recurringDays": [1, 2, 3, 4, 5],
+      "legs": [
+        { "serviceId": "hblr_port_imperial_to_hblr_hoboken", "preferredTime": "next" },
+        { "serviceId": "path_hoboken_to_path_9th", "preferredTime": "next" }
+      ]
+    }
+  ]
+}

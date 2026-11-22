@@ -12,7 +12,8 @@
 - **Install dependencies:** none (static app).
 - **Run locally:** `cd docs/app && python3 -m http.server 8000` then open `http://localhost:8000/` (serving via http is required so the browser can `fetch` the JSON).
 - **Live URLs (GitHub Pages, publicly accessible now):** app at `https://building-with-ai-f26.github.io/ip2618-LinkWise/app/`, Product Page at `https://building-with-ai-f26.github.io/ip2618-LinkWise/`. Repo: `https://github.com/building-with-ai-f26/ip2618-LinkWise`.
-- **Run deterministic tests:** `node tests/schedule_logic.test.js` (pure logic — ScheduleService, countdown formatting, next-departure selection, weekday validity, day/time commute suggestion, and the MTA GTFS-Realtime adapter against a captured feed fixture; no browser or network).
+- **Run deterministic tests:** `node tests/schedule_logic.test.js` (pure logic — ScheduleService, countdown formatting, next-departure selection, weekday validity, day/time commute suggestion, the MTA GTFS-Realtime adapter against a captured feed fixture, and Build 3 SCHEDULED timetable logic: calendars/exceptions, overnight GTFS times, SCHEDULED/UNAVAILABLE states, transfer-window-vs-buffer, and the Port Imperial→Hoboken→PATH→9th journey) **and** `node tests/build_schedules.test.mjs` (pure GTFS-preprocessor functions). No browser or network.
+- **Rebuild real schedules (Build 3, local only):** `node tools/build_schedules.mjs` downloads the official PATH + NJ TRANSIT (HBLR) GTFS, filters to the LinkWise corridor, and writes `docs/app/data/{path,hblr}_schedule.json`. These generated files and the `tools/.gtfs_cache/` download are **git-ignored** pending redistribution approval (NJ TRANSIT requires a registered developer account; PATH/PANYNJ permission unconfirmed). The app loads them when present and otherwise falls back to MOCK/LIVE (Build 2 behavior).
 - **Run model evals:** none yet (no model in Build 1).
 
 ## 3. Non-Negotiable Engineering Rules

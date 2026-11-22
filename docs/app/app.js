@@ -57,16 +57,57 @@ const esc = s => String(s).replace(/[&<>"']/g, c =>
 
 const ScheduleService = {
   doc: null,
-  init(doc) { this.doc = doc; },
+  _scheduledDocs: [],            // additional SCHEDULED documents (PATH / HBLR)
+  _schedMetaByService: {},       // serviceId -> owning scheduled doc's _meta
+  init(doc) { this.doc = doc; this._scheduledDocs = []; this._schedMetaByService = {}; },
+
+  // Merge a preprocessed SCHEDULED document (from tools/build_schedules.mjs) into
+  // the live service catalog. Operators/stations/services are added (deduped by id)
+  // so every existing accessor keeps working uniformly. Safe if the file is absent.
+  addScheduledDoc(sdoc) {
+    if (!sdoc || !Array.isArray(sdoc.services)) return;
+    this._scheduledDocs.push(sdoc);
+    const meta = sdoc._meta || {};
+    for (const op of (sdoc.operators || [])) if (!this.doc.operators.some(o => o.id === op.id)) this.doc.operators.push(op);
+    for (const st of (sdoc.stations || [])) if (!this.doc.stations.some(s => s.id === st.id)) this.doc.stations.push(st);
+    for (const sv of sdoc.services) {
+      if (!this.doc.services.some(s => s.id === sv.id)) this.doc.services.push(sv);
+      this._schedMetaByService[sv.id] = meta;
+    }
+  },
 
   operator(id) { return this.doc.operators.find(o => o.id === id) || null; },
   station(id) { return this.doc.stations.find(s => s.id === id) || null; },
   service(id) { return this.doc.services.find(s => s.id === id) || null; },
   get services() { return this.doc.services; },
-  get sampleCommutes() { return this.doc.sampleCommutes || []; },
+  get sampleCommutes() {
+    let out = (this.doc.sampleCommutes || []).slice();
+    for (const sd of this._scheduledDocs) if (Array.isArray(sd.sampleCommutes)) out = out.concat(sd.sampleCommutes);
+    return out;
+  },
 
   // Is this service powered by a real-time API (not mock)?
   isLive(serviceId) { const s = this.service(serviceId); return !!(s && s.live); },
+
+  // Is this service backed by a published timetable (SCHEDULED, not live, not mock)?
+  isScheduled(serviceId) { const s = this.service(serviceId); return !!(s && s.dataBasis === 'scheduled'); },
+  scheduledMeta(serviceId) { return this._schedMetaByService[serviceId] || null; },
+
+  // SCHEDULED availability: a published timetable can go stale. Returns
+  //   { status: 'scheduled' } when usable, or
+  //   { status: 'unavailable', reason } when expired / not-yet-effective / empty.
+  // This is what powers the honest UNAVAILABLE state (we never show expired times
+  // as if current).
+  scheduledState(serviceId, now = new Date()) {
+    const svc = this.service(serviceId);
+    if (!svc || svc.dataBasis !== 'scheduled') return { status: 'n/a' };
+    const meta = this.scheduledMeta(serviceId) || {};
+    const today = ymd(now);
+    if (meta.serviceEnd && today > meta.serviceEnd) return { status: 'unavailable', reason: 'published schedule has expired' };
+    if (meta.serviceStart && today < meta.serviceStart) return { status: 'unavailable', reason: 'schedule not yet in effect' };
+    if (!Array.isArray(svc.trips) || !svc.trips.length) return { status: 'unavailable', reason: 'no scheduled trips for this leg' };
+    return { status: 'scheduled' };
+  },
 
   // Live cache keyed by serviceId:
   //   { status: 'loading'|'live'|'unavailable', reason, departures:[{when,route,epoch}], feedTs, fetchedAt }
@@ -130,8 +171,39 @@ const ScheduleService = {
   runsOn(serviceId, date) {
     const svc = this.service(serviceId);
     if (!svc) return false;
+    if (svc.dataBasis === 'scheduled') {
+      const cals = svc.calendars || {};
+      return (svc.trips || []).some(t => calendarActiveOn(cals[t.cal], date));
+    }
     const days = Array.isArray(svc.validDays) ? svc.validDays : [0, 1, 2, 3, 4, 5, 6];
     return days.includes(date.getDay());
+  },
+
+  // SCHEDULED upcoming departures: expand real trips over calendar days, honoring
+  // weekly patterns, add/except exceptions, and after-midnight (>=24:00) GTFS times.
+  // We start one day in the PAST so an overnight trip from yesterday's service date
+  // (e.g. a 25:49 = 01:49-next-day departure) is still offered early in the morning.
+  // Each item carries both `when` (board) and `arr` (alight) for transfer math.
+  _schedUpcoming(svc, now, lookaheadDays, afterTime) {
+    const cals = svc.calendars || {};
+    const minToday = afterTime ? toMinutes(afterTime) : null;
+    const out = [];
+    for (let d = -1; d <= lookaheadDays; d++) {
+      const day = new Date(now);
+      day.setDate(now.getDate() + d);
+      day.setHours(0, 0, 0, 0);
+      for (const t of (svc.trips || [])) {
+        if (!calendarActiveOn(cals[t.cal], day)) continue;
+        if (d === 0 && minToday != null && (t.depMin % 1440) < minToday) continue;
+        const when = new Date(day.getTime() + t.depMin * 60000);
+        if (when.getTime() < now.getTime()) continue;
+        const arr = (t.arrMin != null) ? new Date(day.getTime() + t.arrMin * 60000) : null;
+        out.push({ serviceId: svc.id, hhmm: minToClock(t.depMin), when, arr, scheduled: true });
+      }
+      if (out.length >= 8) break;
+    }
+    out.sort((a, b) => a.when - b.when);
+    return out.slice(0, 8);
   },
 
   // Core seam: upcoming departures for a service as absolute Date timestamps,
@@ -139,7 +211,9 @@ const ScheduleService = {
   // `afterTime` (optional "HH:MM") filters out departures earlier than it today.
   upcomingDepartures(serviceId, now, { lookaheadDays = 7, afterTime = null } = {}) {
     const svc = this.service(serviceId);
-    if (!svc || !Array.isArray(svc.departures)) return [];
+    if (!svc) return [];
+    if (svc.dataBasis === 'scheduled') return this._schedUpcoming(svc, now, lookaheadDays, afterTime);
+    if (!Array.isArray(svc.departures)) return [];
     const out = [];
     const minToday = afterTime ? toMinutes(afterTime) : null;
 
@@ -273,6 +347,49 @@ function fmtCountdown(ms) {
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+// ---- SCHEDULED (GTFS) helpers ---------------------------------------------
+
+// Local-date key "YYYYMMDD" for a Date (used to match GTFS calendar bounds +
+// add/except exception dates against the rider's day).
+function ymd(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}${m}${d}`;
+}
+
+// Is a compact calendar active on `date`? add[] forces service on; otherwise the
+// date must fall within [start,end], match a weekday, and not be in except[].
+function calendarActiveOn(cal, date) {
+  if (!cal) return false;
+  const key = ymd(date);
+  if (Array.isArray(cal.add) && cal.add.includes(key)) return true;
+  if (cal.start && key < cal.start) return false;
+  if (cal.end && key > cal.end) return false;
+  if (Array.isArray(cal.except) && cal.except.includes(key)) return false;
+  return (cal.days || []).includes(date.getDay());
+}
+
+// Minutes-after-midnight (possibly >=1440 for overnight) -> "HH:MM" clock label.
+function minToClock(m) {
+  const mm = ((m % 1440) + 1440) % 1440;
+  return String(Math.floor(mm / 60)).padStart(2, '0') + ':' + String(mm % 60).padStart(2, '0');
+}
+
+// Minimum in-station transfer buffer we require a rider to have (minutes). This
+// is the SAFETY floor and is distinct from the actual scheduled gap between a
+// train's arrival and the next train's departure (the "transfer window").
+const MIN_TRANSFER_BUFFER_MIN = 4;
+
+// Assess a connection: `arr` = alighting time of the inbound leg, `dep` =
+// departure of the onward leg. Returns the actual window and whether it clears
+// the required minimum buffer. windowMin (e.g. 9) is NOT the buffer (e.g. 4).
+function transferAssessment(arr, dep, minBufferMin = MIN_TRANSFER_BUFFER_MIN) {
+  if (!arr || !dep) return null;
+  const windowMin = Math.round((dep.getTime() - arr.getTime()) / 60000);
+  return { windowMin, minBufferMin, feasible: windowMin >= minBufferMin };
+}
+
 // ---- Persistence (safe if storage unavailable) -----------------------------
 
 function sampleToCommute(c) {
@@ -361,13 +478,18 @@ function legDepartures(leg, now) {
   return biased.length ? biased : next;
 }
 
-// Data-source status for a leg: 'LIVE' | 'MOCK' | 'UNAVAILABLE' | 'LOADING'.
-function legStatus(leg) {
-  if (!ScheduleService.isLive(leg.serviceId)) return 'MOCK';
-  const st = ScheduleService.liveState(leg.serviceId);
-  if (st.status === 'live') return 'LIVE';
-  if (st.status === 'loading') return 'LOADING';
-  return 'UNAVAILABLE';
+// Data-source status for a leg: 'LIVE' | 'SCHEDULED' | 'MOCK' | 'UNAVAILABLE' | 'LOADING'.
+function legStatus(leg, now = new Date()) {
+  if (ScheduleService.isLive(leg.serviceId)) {
+    const st = ScheduleService.liveState(leg.serviceId);
+    if (st.status === 'live') return 'LIVE';
+    if (st.status === 'loading') return 'LOADING';
+    return 'UNAVAILABLE';
+  }
+  if (ScheduleService.isScheduled(leg.serviceId)) {
+    return ScheduleService.scheduledState(leg.serviceId, now).status === 'scheduled' ? 'SCHEDULED' : 'UNAVAILABLE';
+  }
+  return 'MOCK';
 }
 
 // Trigger a live refresh for the active leg if it is live and the cache is
@@ -458,6 +580,7 @@ function renderCountdown() {
   const now = new Date();
   const status = legStatus(leg);
   const isLive = ScheduleService.isLive(leg.serviceId);
+  const isScheduled = ScheduleService.isScheduled(leg.serviceId);
 
   // Keep the live cache warm; re-render when fresh data lands.
   if (isLive) maybeRefreshLive(leg, renderCountdown);
@@ -476,9 +599,15 @@ function renderCountdown() {
     return;
   }
 
-  // LIVE leg that could not be used reliably — honest UNAVAILABLE state.
+  // A leg that could not be used reliably — honest UNAVAILABLE state. Applies to
+  // both a failing LIVE feed and an expired/missing SCHEDULED timetable.
   if (status === 'UNAVAILABLE') {
-    const reason = ScheduleService.liveState(leg.serviceId).reason || 'live data unavailable';
+    const reason = isLive
+      ? (ScheduleService.liveState(leg.serviceId).reason || 'live data unavailable')
+      : (ScheduleService.scheduledState(leg.serviceId).reason || 'schedule data unavailable');
+    const footnote = isLive
+      ? 'The live MTA feed couldn’t be used right now. No departure is shown rather than guessing.'
+      : 'The published timetable couldn’t be used (e.g. expired or not loaded). No departure is shown rather than guessing.';
     box.innerHTML = `
       <div class="cd-card state-none">
         <div class="cd-leg">${legHdr}</div>
@@ -486,11 +615,11 @@ function renderCountdown() {
         <div class="cd-status unavailable">UNAVAILABLE</div>
         <div class="cd-details" style="margin-top:14px">
           <div class="cd-row"><span class="cd-k">Station</span><span class="cd-v">${info ? esc(info.originName) : '—'}</span></div>
-          ${info && info.line ? `<div class="cd-row"><span class="cd-k">Line</span><span class="cd-v">${esc(info.line)} train</span></div>` : ''}
+          ${info && info.line ? `<div class="cd-row"><span class="cd-k">Line</span><span class="cd-v">${esc(info.line)}${isLive ? ' train' : ''}</span></div>` : ''}
           <div class="cd-row"><span class="cd-k">Reason</span><span class="cd-v">${esc(reason)}</span></div>
         </div>
-        <div class="cd-actions"><button class="btn btn-ghost" id="retryLiveBtn">Retry live feed</button></div>
-        <p class="cd-note">The live MTA feed couldn’t be used right now. No departure is shown rather than guessing.</p>
+        ${isLive ? '<div class="cd-actions"><button class="btn btn-ghost" id="retryLiveBtn">Retry live feed</button></div>' : ''}
+        <p class="cd-note">${footnote}</p>
       </div>`;
     const r = document.getElementById('retryLiveBtn');
     if (r) r.addEventListener('click', () => { delete ScheduleService._liveCache[leg.serviceId]; renderCountdown(); });
@@ -528,19 +657,26 @@ function renderCountdown() {
     return `<span class="leg-pill ${i === activeLegIndex ? 'on' : ''}">${i + 1}. ${li ? esc(li.operatorShort) : '?'}</span>`;
   }).join('');
 
-  // Source badge + freshness + footnote differ for LIVE vs MOCK.
-  const statusPill = isLive
-    ? '<span class="cd-status live">\u25cf LIVE</span>'
-    : '<span class="cd-status mock">MOCK</span>';
-  const subChip = isLive ? '<span class="live-chip">LIVE</span>' : '<span class="mock-chip">MOCK</span>';
-  let freshness = '';
+  // Source badge + freshness + footnote differ for LIVE vs SCHEDULED vs MOCK.
+  let statusPill, subChip, note, freshness = '';
   if (isLive) {
+    statusPill = '<span class="cd-status live">\u25cf LIVE</span>';
+    subChip = '<span class="live-chip">LIVE</span>';
     const ts = ScheduleService.liveState(leg.serviceId).feedTs;
     if (ts) freshness = `<div class="cd-fresh">MTA feed updated ${Math.max(0, Math.round(Date.now() / 1000 - ts))}s ago</div>`;
+    note = 'LIVE data from the official MTA GTFS-Realtime feed (public, no API key). Not affiliated with the MTA.';
+  } else if (isScheduled) {
+    const meta = ScheduleService.scheduledMeta(leg.serviceId) || {};
+    statusPill = '<span class="cd-status scheduled">SCHEDULED</span>';
+    subChip = '<span class="sched-chip">SCHEDULED</span>';
+    freshness = '<div class="cd-fresh">Published timetable — a scheduled time, not a live prediction.</div>';
+    note = 'SCHEDULED published timetable' + (meta.source ? ' (' + esc(meta.source) + ')' : '') +
+      ' — a scheduled departure time, not live vehicle tracking.';
+  } else {
+    statusPill = '<span class="cd-status mock">MOCK</span>';
+    subChip = '<span class="mock-chip">MOCK</span>';
+    note = 'Illustrative MOCK departure data — not live or verified schedule information.';
   }
-  const note = isLive
-    ? 'LIVE data from the official MTA GTFS-Realtime feed (public, no API key). Not affiliated with the MTA.'
-    : 'Illustrative MOCK departure data — not live or verified schedule information.';
 
   box.innerHTML = `
     <div class="cd-card state-${state}">
@@ -787,6 +923,18 @@ async function init() {
   }
 
   ScheduleService.init(SCHEDULE);
+
+  // Load preprocessed SCHEDULED timetables (PATH / HBLR) if present. These are
+  // generated locally by tools/build_schedules.mjs and are git-ignored pending
+  // redistribution approval, so a fresh clone simply has none (Build 2 behavior).
+  // Any fetch/parse failure is ignored: the app keeps working with MOCK + LIVE.
+  for (const f of ['data/path_schedule.json', 'data/hblr_schedule.json']) {
+    try {
+      const r = await fetch(f + '?v=' + Date.now(), { cache: 'no-store' });
+      if (r.ok) ScheduleService.addScheduledDoc(await r.json());
+    } catch (e) { /* optional dataset — ignore when absent */ }
+  }
+
   loadCommutes();
 
   // Open on the commute suggested for right now.
