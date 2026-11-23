@@ -41,21 +41,29 @@
   </script>
 
   <style>
+    /* Palette matches docs/app/index.html (the deployed Build 3 app) — warm
+       cream background, electric-violet primary accent, coral/blue/teal supports. */
     :root {
-      --bg: #fafafa;
+      --bg: #fdf8ef;
+      --bg-bot: #f5ead6;
       --card: #ffffff;
-      --text: #111827;
-      --muted: #4b5563;
-      --border: #e5e7eb;
-      --accent: #1d63dc;
-      --tag-bg: #eff6ff;
-      --tag-text: #1e40af;
+      --card-2: #f7f0e3;
+      --text: #231d33;
+      --muted: #6c6578;
+      --border: #e7dcc7;
+      --accent: #7c3aed;      /* electric violet */
+      --accent-2: #9d4bff;
+      --hblr: #fb7185;        /* coral */
+      --path: #3b82f6;        /* blue */
+      --success: #14b8a6;     /* teal */
+      --tag-bg: rgba(20,184,166,.12);
+      --tag-text: #0f766e;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "DM Sans", "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
+      background: radial-gradient(1200px 600px at 50% -10%, #fffdf8 0%, var(--bg) 45%, var(--bg-bot) 100%);
       color: var(--text);
       line-height: 1.6;
     }
@@ -100,22 +108,25 @@
     .btn {
       display: inline-block;
       padding: 10px 18px;
-      border-radius: 8px;
-      font-weight: 600;
+      border-radius: 999px;
+      font-weight: 700;
       font-size: 15px;
       text-decoration: none;
-      background: var(--accent);
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
       color: #fff;
+      box-shadow: 0 4px 14px rgba(124,58,237,.28);
     }
     .btn-secondary {
       background: var(--card);
-      color: var(--text);
+      color: var(--accent);
       border: 1px solid var(--border);
+      box-shadow: none;
     }
+    a { color: var(--accent); }
     section {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 12px;
+      border-radius: 18px;
       padding: 24px 28px;
       margin-bottom: 24px;
     }
@@ -123,7 +134,9 @@
       font-size: 20px;
       margin: 0 0 14px;
       letter-spacing: -0.01em;
+      color: var(--text);
     }
+    h2::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-right: 9px; }
     h3 {
       font-size: 16px;
       margin: 18px 0 6px;
@@ -139,9 +152,9 @@
     }
     .stat-box {
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 12px;
       padding: 14px 16px;
-      background: var(--bg);
+      background: var(--card-2);
     }
     .stat-label {
       font-size: 12px;
@@ -181,9 +194,9 @@
       width: 100%;
       height: auto;
       border: 1px solid var(--border);
-      border-radius: 10px;
+      border-radius: 14px;
       display: block;
-      background: #1e1b3a;
+      background: var(--card-2);
     }
     .shots figcaption {
       font-size: 13px;
@@ -211,30 +224,22 @@
     <section id="live-demo">
       <h2>Product Showcase (Prototype / Live App / 2-Min Video)</h2>
       <p>
-        <strong>Current Status:</strong> Pivoted to LinkWise — live static app published on GitHub Pages (also runs locally).<br />
-        <strong>Try it:</strong> <a href="app/">Open the live LinkWise app →</a> (served from this same site at <code>/app/</code>). Screenshots below are captured from the running <code>docs/app/index.html</code> app.
+        <strong>Current Status:</strong> Build 3 — redesigned LinkWise with real published-schedule integration, an arrive-by planner, and a public synthetic DEMO journey, live on GitHub Pages (also runs locally).<br />
+        <strong>Try it:</strong> <a href="app/">Open the live LinkWise app →</a> (served from this same site at <code>/app/</code>). Screenshots below are captured directly from the <strong>deployed Build 3 app</strong>.
       </p>
       <div class="shots">
         <figure>
-          <img src="images/dashboard.png" alt="LinkWise dashboard showing two saved commutes, Morning to NYU and Evening Home, as horizontally scrollable cards. The relevant one for the current day and time is marked Suggested now and outlined as active." />
-          <figcaption>The saved-commutes dashboard. LinkWise suggests the right commute for the current day and time (“Suggested now”); riders can switch manually by tapping any card.</figcaption>
+          <img src="images/dashboard.png" alt="LinkWise Build 3 top bar with My Commutes and Explore buttons, the featured journey label for Monday to NYU (Port Imperial, DEMO), and the start of the large countdown card showing a DEMO badge, Hudson-Bergen Light Rail, and at-a-glance Depart / Total / Arrive NYU / Class tiles." />
+          <figcaption>The redesigned dashboard features <strong>one</strong> relevant journey instead of a card carousel — here the Monday → NYU flagship, clearly tagged <strong>DEMO</strong>. “My Commutes” and “Explore” (including the MTA LIVE demo) are one tap away.</figcaption>
         </figure>
         <figure>
-          <img src="images/countdown.png" alt="LinkWise large departure countdown reading several minutes until a PATH train, showing the boarding station, destination, direction, following departure, and an I'm on this train button. The data is labeled MOCK." />
-          <figcaption>The centerpiece: a large, colorful per-second countdown to the next train, with boarding station, destination, direction, operator, and the following departure. All times are labeled MOCK.</figcaption>
-        </figure>
-        <figure>
-          <img src="images/setup.png" alt="LinkWise new-commute setup sheet with a name field, weekday toggles for Mon through Fri, and editable transit legs each selecting a service and a preferred or next-available departure time." />
-          <figcaption>Commute setup: name the commute, pick recurring weekdays, and add legs (operator/station/direction plus a preferred or next-available departure). Saved locally.</figcaption>
-        </figure>
-        <figure>
-          <img src="images/next-leg.png" alt="LinkWise countdown after tapping I'm on this train, now showing Leg 2 of 2 on the Light Rail with the second leg pill highlighted and a Previous leg option." />
-          <figcaption>Advancing between legs: tapping “I'm on this train → Next leg” moves the countdown to the next leg (here Leg 2 on the Light Rail), with the active leg highlighted.</figcaption>
+          <img src="images/countdown.png" alt="LinkWise full countdown card: DEMO badge, at-a-glance journey summary (Depart 9:40 AM, Total to NYU 38 min, Arrive NYU 10:18 AM, Class 10:30 AM 12 min early), a large PLENTY OF TIME countdown, a schematic map from Port Imperial through Hoboken and 9th Street to a dashed Walk to NYU segment, a collapsible Trip timeline and details link, leg pills, and the I'm on this train to Next leg button." />
+          <figcaption>The full journey: an at-a-glance summary (depart / total time / arrive NYU / minutes early), the large countdown, a compact <strong>schematic journey map</strong> (Port Imperial → Hoboken → 9th St → walk to NYU, explicitly <em>not</em> GPS or live train position), and a collapsible trip timeline with per-leg times and transfer wait.</figcaption>
         </figure>
       </div>
       <p class="meta">
-        The prototype is a personalized commute assistant: the dashboard suggests (or you switch to) a saved commute, a large per-second countdown shows the next train’s boarding station, destination, direction, and operator, and you tap “I'm on this train” to advance through legs. When a departure passes, the countdown rolls to the next eligible one.</p><p class="meta">
-        Departure data is clearly labeled by source: the <strong>“Live API Demo (MTA)”</strong> commute shows <strong>LIVE</strong> real-time data from the official MTA GTFS-Realtime feed, while all PATH / NJ Transit / Hudson-Bergen Light Rail commutes use illustrative <strong>MOCK</strong> times labeled “not live or verified schedule information.” There are no fare payments, checkout baskets, or ticket wallets.
+        Build 3 adds an <strong>arrive-by planner</strong>: for a target like a 10:30 AM class, LinkWise works backward across Hudson-Bergen Light Rail + PATH, respects a minimum transfer buffer, and recommends the latest feasible departure — then a transfer-aware countdown guides each leg, anchored on the previous train’s scheduled arrival rather than the device clock.</p><p class="meta">
+        Data is always labeled by source: <strong>LIVE</strong> (the official, key-free MTA GTFS-Realtime demo, under Explore), <strong>SCHEDULED</strong> (real published PATH/HBLR timetables — used only on an authorized local machine pending NJ TRANSIT/PATH redistribution approval), <strong>DEMO</strong> (the clearly-labeled <em>synthetic, simulated</em> dataset shown above, which powers the full public workflow and is never presented as a real or live schedule), and <strong>MOCK</strong> (illustrative). There are no fare payments, checkout baskets, or ticket wallets.
       </p>
     </section>
 
