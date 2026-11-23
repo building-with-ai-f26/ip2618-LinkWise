@@ -565,6 +565,47 @@ console.log('\nSEEDING — existing localStorage keeps data, gains new sample on
   check('deleted sample is NOT re-seeded on reload', !getCommutes().some(c => c.id === 'monday_nyu_flagship'));
 }
 
+// ---------------------------------------------------------------------------
+//  DEMO data basis (public fallback). Clearly-labeled synthetic data that the
+//  arrive-by planner treats like scheduled but that can NEVER be labeled
+//  SCHEDULED or LIVE.
+// ---------------------------------------------------------------------------
+console.log('\nDEMO data basis — planned like scheduled, labeled DEMO, never SCHEDULED/LIVE');
+{
+  const demoDoc = {
+    _meta: { dataBasis: 'demo', source: 'DEMO', serviceStart: '20250101', serviceEnd: '20301231' },
+    operators: [{ id: 'DX', name: 'Demo Op', shortName: 'Demo', color: '#fb7185' }],
+    stations: [{ id: 'demo_a', operator: 'DX', name: 'Demo A' }, { id: 'demo_b', operator: 'DX', name: 'Demo B' }],
+    services: [{
+      id: 'demo_leg1', operator: 'DX', origin: 'demo_a', destination: 'demo_b', direction: 'DEMO', line: 'Demo',
+      dataBasis: 'demo',
+      calendars: { wk: { days: [1, 2, 3, 4, 5], start: '20250101', end: '20301231', add: [], except: [] } },
+      trips: [{ cal: 'wk', depMin: 480, arrMin: 500 }, { cal: 'wk', depMin: 540, arrMin: 560 }]
+    }],
+    sampleCommutes: []
+  };
+  ScheduleService.addScheduledDoc(demoDoc);
+  check('isDemo true, isScheduled false, isLive false', ScheduleService.isDemo('demo_leg1') && !ScheduleService.isScheduled('demo_leg1') && !ScheduleService.isLive('demo_leg1'));
+  check('isPlanned true (planned like scheduled)', ScheduleService.isPlanned('demo_leg1') === true);
+  check('legStatus is DEMO (never SCHEDULED/LIVE)', legStatus({ serviceId: 'demo_leg1' }, wk(6, 18, 6, 0)) === 'DEMO');
+  check('demo leg is NOT labeled SCHEDULED', legStatus({ serviceId: 'demo_leg1' }, wk(6, 18, 6, 0)) !== 'SCHEDULED');
+  check('demo leg is NOT labeled LIVE', legStatus({ serviceId: 'demo_leg1' }, wk(6, 18, 6, 0)) !== 'LIVE');
+  const deps = ScheduleService.upcomingDepartures('demo_leg1', wk(6, 18, 6, 0));
+  check('demo departures are planned (08:00 first, with arrival)', deps[0] && deps[0].hhmm === '08:00' && !!deps[0].arr, deps[0] && deps[0].hhmm);
+  check('demo is NOT a migration target for mock commutes', ScheduleService.scheduledEquivalentOf('demo_leg1') === null);
+}
+
+console.log('\nDEMO committed file — honest labeling + flagship present');
+{
+  const demo = JSON.parse(fs.readFileSync(path.join(root, 'docs/app/data/demo_schedule.json'), 'utf8'));
+  check('committed demo file dataBasis is "demo"', demo._meta.dataBasis === 'demo');
+  check('every demo service has dataBasis demo (never scheduled)', demo.services.every(s => s.dataBasis === 'demo'));
+  check('no demo service is flagged live', demo.services.every(s => !s.live));
+  check('disclaimer states times are SIMULATED / not real', /simulated/i.test(demo._meta.disclaimer) && /not real|NOT real/i.test(demo._meta.disclaimer));
+  check('demo provides the Monday NYU flagship commute', demo.sampleCommutes.some(c => c.id === 'monday_nyu_flagship' && c.arrivalGoal === '10:30'));
+  check('demo flagship name advertises DEMO', /DEMO/i.test(demo.sampleCommutes[0].name));
+}
+
 console.log('\nReal generated schedule files (optional, local only)');
 {
   const pPath = path.join(root, 'docs/app/data/path_schedule.json');

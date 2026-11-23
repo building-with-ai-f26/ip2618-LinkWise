@@ -98,6 +98,11 @@ const ScheduleService = {
 
   // Is this service backed by a published timetable (SCHEDULED, not live, not mock)?
   isScheduled(serviceId) { const s = this.service(serviceId); return !!(s && s.dataBasis === 'scheduled'); },
+  // Is this a clearly-labeled synthetic DEMO service (illustrative, never real)?
+  isDemo(serviceId) { const s = this.service(serviceId); return !!(s && s.dataBasis === 'demo'); },
+  // "Planned" = timetable-shaped (trips + calendars): SCHEDULED or DEMO. Both are
+  // planned/transfer-checked the same way; only their LABEL differs. (Never LIVE/MOCK.)
+  isPlanned(serviceId) { const s = this.service(serviceId); return !!(s && (s.dataBasis === 'scheduled' || s.dataBasis === 'demo')); },
   scheduledMeta(serviceId) { return this._schedMetaByService[serviceId] || null; },
 
   // SCHEDULED availability: a published timetable can go stale. Returns
@@ -107,7 +112,7 @@ const ScheduleService = {
   // as if current).
   scheduledState(serviceId, now = new Date()) {
     const svc = this.service(serviceId);
-    if (!svc || svc.dataBasis !== 'scheduled') return { status: 'n/a' };
+    if (!svc || !(svc.dataBasis === 'scheduled' || svc.dataBasis === 'demo')) return { status: 'n/a' };
     const meta = this.scheduledMeta(serviceId) || {};
     const today = ymd(now);
     if (meta.serviceEnd && today > meta.serviceEnd) return { status: 'unavailable', reason: 'published schedule has expired' };
@@ -178,7 +183,7 @@ const ScheduleService = {
   runsOn(serviceId, date) {
     const svc = this.service(serviceId);
     if (!svc) return false;
-    if (svc.dataBasis === 'scheduled') {
+    if (svc.dataBasis === 'scheduled' || svc.dataBasis === 'demo') {
       const cals = svc.calendars || {};
       return (svc.trips || []).some(t => calendarActiveOn(cals[t.cal], date));
     }
@@ -219,7 +224,7 @@ const ScheduleService = {
   upcomingDepartures(serviceId, now, { lookaheadDays = 7, afterTime = null } = {}) {
     const svc = this.service(serviceId);
     if (!svc) return [];
-    if (svc.dataBasis === 'scheduled') return this._schedUpcoming(svc, now, lookaheadDays, afterTime);
+    if (svc.dataBasis === 'scheduled' || svc.dataBasis === 'demo') return this._schedUpcoming(svc, now, lookaheadDays, afterTime);
     if (!Array.isArray(svc.departures)) return [];
     const out = [];
     const minToday = afterTime ? toMinutes(afterTime) : null;
@@ -264,7 +269,7 @@ const ScheduleService = {
   // schedules WITHOUT ever changing the stations/destination. Returns an id or null.
   scheduledEquivalentOf(serviceId) {
     const m = this.service(serviceId);
-    if (!m || m.dataBasis === 'scheduled' || m.live) return null;
+    if (!m || m.dataBasis === 'scheduled' || m.dataBasis === 'demo' || m.live) return null;
     const sc = this.doc.services.find(s =>
       s.dataBasis === 'scheduled' && s.origin === m.origin && s.destination === m.destination);
     return sc ? sc.id : null;
@@ -275,7 +280,7 @@ const ScheduleService = {
   // non-scheduled services (mock/live) because the arrive-by planner needs arrivals.
   tripsOn(serviceId, date) {
     const svc = this.service(serviceId);
-    if (!svc || svc.dataBasis !== 'scheduled' || !Array.isArray(svc.trips)) return [];
+    if (!svc || !(svc.dataBasis === 'scheduled' || svc.dataBasis === 'demo') || !Array.isArray(svc.trips)) return [];
     const cals = svc.calendars || {};
     const mid = midnightOf(date);
     const out = [];
@@ -294,7 +299,7 @@ const ScheduleService = {
   // Uses the weekly calendar pattern (date-specific exceptions apply at runtime).
   scheduledDepartureTimes(serviceId, days = [0, 1, 2, 3, 4, 5, 6]) {
     const svc = this.service(serviceId);
-    if (!svc || svc.dataBasis !== 'scheduled' || !Array.isArray(svc.trips)) return [];
+    if (!svc || !(svc.dataBasis === 'scheduled' || svc.dataBasis === 'demo') || !Array.isArray(svc.trips)) return [];
     const cals = svc.calendars || {};
     const daySet = new Set(days);
     const times = new Set();
@@ -664,7 +669,7 @@ function commuteWalkMinutes(c) { return Number.isFinite(c && c.walkMinutes) ? c.
 // services carry real arrivals; mock services are expanded from their departures[]
 // (no arrival — arrive-by won't accept them).
 function departuresOnDate(serviceId, date) {
-  if (ScheduleService.isScheduled(serviceId)) {
+  if (ScheduleService.isPlanned(serviceId)) {
     return ScheduleService.tripsOn(serviceId, date).map(t => ({ when: t.dep, arr: t.arr, hhmm: t.hhmm }));
   }
   const svc = ScheduleService.service(serviceId);
@@ -693,8 +698,8 @@ function fixedBoardOn(serviceId, date, prefMin, now) {
 function planArriveBy(commute, date, { arrivalBuffer = DEFAULT_ARRIVAL_BUFFER_MIN, walkMinutes = DEFAULT_WALK_MIN, minTransferBuffer = MIN_TRANSFER_BUFFER_MIN } = {}) {
   const goalMin = toMinutes(commute.arrivalGoal);
   if (goalMin == null) return { feasible: false, reason: 'no target arrival time set' };
-  if (!commute.legs.length || !commute.legs.every(l => ScheduleService.isScheduled(l.serviceId))) {
-    return { feasible: false, reason: 'arrive-by needs published schedules for every leg' };
+  if (!commute.legs.length || !commute.legs.every(l => ScheduleService.isPlanned(l.serviceId))) {
+    return { feasible: false, reason: 'arrive-by needs scheduled or demo data for every leg' };
   }
   const mid = midnightOf(date);
   const deadlineFinal = new Date(mid.getTime() + (goalMin - arrivalBuffer - walkMinutes) * 60000);
@@ -918,7 +923,8 @@ function journeyBreakdown(c, planLike, walkMin) {
 
 // HTML for the full-journey detail panel (Monday flagship). `destName` is the
 // user's final destination label (e.g. "NYU").
-function journeyPanelHtml(bd, destName) {
+function journeyPanelHtml(bd, destName, basis) {
+  const basisLabel = basis === 'demo' ? 'DEMO (simulated)' : 'SCHEDULED transit';
   const t = bd.transfers[0];
   const rows = [];
   bd.legs.forEach((lg, i) => {
@@ -932,7 +938,7 @@ function journeyPanelHtml(bd, destName) {
   const dest = destName || 'destination';
   return `
     <div class="journey-panel">
-      <div class="jp-head">Full journey — <span class="jp-sched">SCHEDULED transit</span></div>
+      <div class="jp-head">Full journey — <span class="jp-sched">${basisLabel}</span></div>
       ${rows.join('')}
       <div class="jp-row jp-walk"><span class="jp-dot walk"></span><span class="jp-leg">Walk to ${esc(dest)}</span><span class="jp-time">${bd.walk > 0 ? bd.walk + ' min' : 'none entered'}</span><span class="jp-ride">your estimate</span></div>
       <div class="jp-sep"></div>
@@ -953,6 +959,9 @@ function legStatus(leg, now = new Date()) {
   }
   if (ScheduleService.isScheduled(leg.serviceId)) {
     return ScheduleService.scheduledState(leg.serviceId, now).status === 'scheduled' ? 'SCHEDULED' : 'UNAVAILABLE';
+  }
+  if (ScheduleService.isDemo(leg.serviceId)) {
+    return ScheduleService.scheduledState(leg.serviceId, now).status === 'scheduled' ? 'DEMO' : 'UNAVAILABLE';
   }
   return 'MOCK';
 }
@@ -1047,19 +1056,19 @@ function renderCommutesDrawer() {
     const active = c.id === activeCommuteId;
     const days = (c.recurringDays || []).map(d => DAY_LABELS[d]).join(' ') || 'No days';
     return `
-      <div class="cmx ${active ? 'on' : ''}" data-id="${c.id}">
-        <div class="cmx-main" data-view="${c.id}">
+      <div class="cmx ${active ? 'on' : ''}" data-id="${esc(c.id)}">
+        <div class="cmx-main" data-view="${esc(c.id)}">
           <div class="cmx-name">${esc(c.name)}${active ? ' <span class="cmx-badge">Featured</span>' : ''}</div>
           <div class="cmx-route">${commuteRouteLabel(c)}</div>
           <div class="cmx-meta">${esc(modeLabel(c))} · ${days}</div>
         </div>
         <div class="cmx-actions">
-          <button class="link-btn" data-edit="${c.id}">Edit</button>
-          <button class="link-btn danger" data-del="${c.id}">Delete</button>
+          <button class="link-btn" data-edit="${esc(c.id)}">Edit</button>
+          <button class="link-btn danger" data-del="${esc(c.id)}">Delete</button>
         </div>
-        <div class="cmx-confirm" data-confirm="${c.id}" hidden>
-          Delete “${esc(c.name)}”? <button class="link-btn danger" data-delyes="${c.id}">Yes, delete</button>
-          <button class="link-btn" data-delno="${c.id}">Cancel</button>
+        <div class="cmx-confirm" data-confirm="${esc(c.id)}" hidden>
+          Delete “${esc(c.name)}”? <button class="link-btn danger" data-delyes="${esc(c.id)}">Yes, delete</button>
+          <button class="link-btn" data-delno="${esc(c.id)}">Cancel</button>
         </div>
       </div>`;
   }).join('');
@@ -1104,8 +1113,8 @@ function openExploreDrawer() {
   el('drawerTitle').textContent = 'Explore · Demos';
   const demos = commutes.filter(isDemoCommute);
   const rows = demos.map(c => `
-      <div class="cmx" data-id="${c.id}">
-        <div class="cmx-main" data-view="${c.id}">
+      <div class="cmx" data-id="${esc(c.id)}">
+        <div class="cmx-main" data-view="${esc(c.id)}">
           <div class="cmx-name">${esc(c.name)} <span class="cmx-badge live">LIVE</span></div>
           <div class="cmx-route">${commuteRouteLabel(c)}</div>
           <div class="cmx-meta">Real MTA GTFS-Realtime feed · technical demo</div>
@@ -1133,6 +1142,7 @@ function renderCountdown() {
   const status = legStatus(leg);
   const isLive = ScheduleService.isLive(leg.serviceId);
   const isScheduled = ScheduleService.isScheduled(leg.serviceId);
+  const isDemo = ScheduleService.isDemo(leg.serviceId);
   // Offer an opt-in migration when a published-schedule equivalent exists for
   // this commute and it isn't already on scheduled data.
   const migratable = commuteHasScheduledEquivalent(c);
@@ -1276,7 +1286,7 @@ function renderCountdown() {
             <div class="jsum-i"><div class="jsum-k">Arrive ${esc(destLabel)}</div><div class="jsum-v">${fmtClock(bd.destArrive)}</div></div>
             <div class="jsum-i"><div class="jsum-k">Class ${fmtClock(bd.targetDate)}</div><div class="jsum-v jsum-early">${early}</div></div>
           </div>`;
-        journeyPanel = journeyPanelHtml(bd, destLabel);
+        journeyPanel = journeyPanelHtml(bd, destLabel, isDemo ? 'demo' : 'scheduled');
       }
     }
   }
@@ -1293,6 +1303,10 @@ function renderCountdown() {
     statusPill = '<span class="cd-status scheduled">SCHEDULED</span>';
     note = 'SCHEDULED published timetable' + (meta.source ? ' (' + esc(meta.source) + ')' : '') +
       ' — a scheduled departure time, not live vehicle tracking.';
+  } else if (isDemo) {
+    statusPill = '<span class="cd-status demo">DEMO</span>';
+    note = 'ILLUSTRATIVE DEMO — simulated departure times for demonstration only. ' +
+      'NOT real published PATH / NJ TRANSIT schedules and NOT live data.';
   } else {
     statusPill = '<span class="cd-status mock">MOCK</span>';
     note = 'Illustrative MOCK departure data — not live or verified schedule information.';
@@ -1584,7 +1598,7 @@ function departureTimeOptions(serviceId, selected, days) {
   const svc = ScheduleService.service(serviceId);
   // SCHEDULED services: list actual published departure times that run on the
   // chosen days (so weekend-only drafts don't show weekday trains, etc.).
-  if (svc && svc.dataBasis === 'scheduled') {
+  if (svc && (svc.dataBasis === 'scheduled' || svc.dataBasis === 'demo')) {
     const times = ScheduleService.scheduledDepartureTimes(serviceId, days && days.length ? days : [0, 1, 2, 3, 4, 5, 6]);
     if (!times.length) {
       return `<option value="next" disabled>No scheduled trains on the selected days</option>`;
@@ -1668,6 +1682,18 @@ async function init() {
       const r = await fetch(f + '?v=' + Date.now(), { cache: 'no-store' });
       if (r.ok) ScheduleService.addScheduledDoc(await r.json());
     } catch (e) { /* optional dataset — ignore when absent */ }
+  }
+
+  // Public fallback: if NO real SCHEDULED services loaded (the git-ignored PATH/
+  // HBLR files are absent, e.g. on GitHub Pages), load the committed, clearly
+  // labeled synthetic DEMO dataset so the full arrive-by workflow still works.
+  // When real scheduled data IS present (authorized local testing), we skip the
+  // demo so SCHEDULED behavior is preserved and never shadowed.
+  if (!ScheduleService.services.some(s => s.dataBasis === 'scheduled')) {
+    try {
+      const r = await fetch('data/demo_schedule.json?v=' + Date.now(), { cache: 'no-store' });
+      if (r.ok) ScheduleService.addScheduledDoc(await r.json());
+    } catch (e) { /* demo dataset optional — ignore on failure */ }
   }
 
   loadCommutes();

@@ -18,7 +18,13 @@
         api_host: 'https://us.i.posthog.com',
         person_profiles: 'identified_only',
         disable_session_recording: declined,            // honor tester opt-out
-        session_recording: { maskAllInputs: true, maskTextSelector: '.cc-name' } // mask inputs + user-entered commute names
+        // Mask every place user-entered commute names / destinations are rendered,
+        // across the redesigned dashboard, My Commutes drawer, countdown, and
+        // journey details. maskAllInputs also masks form fields while typing.
+        session_recording: {
+          maskAllInputs: true,
+          maskTextSelector: '.mask-pii, .cmx-name, .cmx-route, .cmx-confirm, .featured-label strong, .cd-leg, .jsum-k, .jp-leg, .cd-map'
+        }
       });
       // Tester privacy notice + “Decline recording” control.
       window.addEventListener('DOMContentLoaded', function () {
@@ -185,6 +191,7 @@
     .cd-status.unavailable { color: #b91c1c; background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.4); }
     .cd-status.loading { color: #b45309; background: rgba(245,158,11,.14); border: 1px solid rgba(245,158,11,.45); }
     .cd-status.scheduled { color: #1e40af; background: rgba(59,130,246,.12); border: 1px solid rgba(59,130,246,.45); }
+    .cd-status.demo { color: #7c2d92; background: rgba(168,85,247,.12); border: 1px solid rgba(168,85,247,.5); }
     .cd-row-transfer .cd-v { color: #0f766e; }
     .cd-buf { opacity: .7; font-size: 11px; }
     .cd-migrate { margin-top: 10px; display: flex; flex-direction: column; align-items: center; gap: 3px; }
