@@ -36,6 +36,8 @@
       "trips": [
         { "cal": "wk", "depMin": 476, "arrMin": 488 },
         { "cal": "wk", "depMin": 488, "arrMin": 500 },
+        { "cal": "wk", "depMin": 580, "arrMin": 592 },
+        { "cal": "wk", "depMin": 586, "arrMin": 598 },
         { "cal": "wk", "depMin": 1450, "arrMin": 1462 },
         { "cal": "sat", "depMin": 540, "arrMin": 552 }
       ]
@@ -52,8 +54,11 @@
         "wk": { "days": [1, 2, 3, 4, 5], "start": "20250101", "end": "20251231", "add": [], "except": ["20250704"] }
       },
       "trips": [
+        { "cal": "wk", "depMin": 490, "arrMin": 500 },
         { "cal": "wk", "depMin": 497, "arrMin": 507 },
         { "cal": "wk", "depMin": 510, "arrMin": 520 },
+        { "cal": "wk", "depMin": 598, "arrMin": 608 },
+        { "cal": "wk", "depMin": 605, "arrMin": 615 },
         { "cal": "wk", "depMin": 1549, "arrMin": 1559 }
       ]
     }
@@ -62,7 +67,25 @@
     {
       "id": "scheduled_morning_pi_9th",
       "name": "Morning: Port Imperial \u2192 9th St (Scheduled)",
+      "scheduleMode": "arrive_by",
+      "arrivalGoal": "09:00",
+      "arrivalBuffer": 10,
+      "walkMinutes": 0,
       "recurringDays": [1, 2, 3, 4, 5],
+      "legs": [
+        { "serviceId": "hblr_port_imperial_to_hblr_hoboken", "preferredTime": "next" },
+        { "serviceId": "path_hoboken_to_path_9th", "preferredTime": "next" }
+      ]
+    },
+    {
+      "id": "monday_nyu_flagship",
+      "name": "Monday \u2192 NYU (Port Imperial)",
+      "scheduleMode": "arrive_by",
+      "arrivalGoal": "10:30",
+      "arrivalBuffer": 10,
+      "walkMinutes": 10,
+      "destinationLabel": "NYU",
+      "recurringDays": [1],
       "legs": [
         { "serviceId": "hblr_port_imperial_to_hblr_hoboken", "preferredTime": "next" },
         { "serviceId": "path_hoboken_to_path_9th", "preferredTime": "next" }

@@ -8,8 +8,8 @@
   },
 
   "operators": [
-    { "id": "HBLR", "name": "Hudson-Bergen Light Rail", "shortName": "Light Rail", "color": "#2dd4bf" },
-    { "id": "PATH", "name": "PATH", "shortName": "PATH", "color": "#f59e0b" },
+    { "id": "HBLR", "name": "Hudson-Bergen Light Rail", "shortName": "Light Rail", "color": "#fb7185" },
+    { "id": "PATH", "name": "PATH", "shortName": "PATH", "color": "#3b82f6" },
     { "id": "NJT_RAIL", "name": "NJ Transit Rail", "shortName": "NJ Transit", "color": "#ef4444" },
     { "id": "MTA_SUBWAY", "name": "MTA New York City Subway", "shortName": "Subway", "color": "#ee352e" }
   ],
@@ -102,6 +102,7 @@
     {
       "id": "morning_to_nyu",
       "name": "Morning to NYU",
+      "scheduleMode": "fixed",
       "arrivalGoal": "09:00",
       "recurringDays": [1, 2, 3, 4, 5],
       "legs": [
@@ -112,6 +113,7 @@
     {
       "id": "evening_home",
       "name": "Evening Home",
+      "scheduleMode": "fixed",
       "arrivalGoal": null,
       "recurringDays": [1, 2, 3, 4, 5],
       "legs": [
@@ -122,6 +124,8 @@
     {
       "id": "live_api_demo",
       "name": "Live API Demo (MTA)",
+      "demo": true,
+      "scheduleMode": "next_available",
       "arrivalGoal": null,
       "recurringDays": [0, 1, 2, 3, 4, 5, 6],
       "legs": [

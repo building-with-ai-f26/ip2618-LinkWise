@@ -349,7 +349,7 @@ function main() {
   const pDir = downloadAndUnzip(PATH_FEED, cache, 'path');
   const pTables = readTables(pDir, ['stops', 'routes', 'trips', 'stop_times', 'calendar', 'calendar_dates']);
   const pDoc = buildScheduleDoc(pTables, {
-    operatorId: 'PATH', operatorName: 'PATH', operatorShort: 'PATH', color: '#4d92fb',
+    operatorId: 'PATH', operatorName: 'PATH', operatorShort: 'PATH', color: '#3b82f6',
     routeMatch: () => true, stations: PATH_STATIONS, legs: PATH_LEGS
   }, {
     source: 'PATH (Port Authority Trans-Hudson, official PANYNJ GTFS)',
@@ -366,7 +366,7 @@ function main() {
   const nDir = downloadAndUnzip(NJT_FEED, cache, 'njrail');
   const nTables = readTables(nDir, ['stops', 'routes', 'trips', 'stop_times', 'calendar', 'calendar_dates']);
   const hDoc = buildScheduleDoc(nTables, {
-    operatorId: 'HBLR', operatorName: 'Hudson-Bergen Light Rail', operatorShort: 'Light Rail', color: '#2dd4bf',
+    operatorId: 'HBLR', operatorName: 'Hudson-Bergen Light Rail', operatorShort: 'Light Rail', color: '#fb7185',
     routeMatch: (r) => (r.route_short_name || '').toUpperCase() === 'HBLR',
     stations: HBLR_STATIONS, legs: HBLR_LEGS
   }, {
@@ -375,9 +375,14 @@ function main() {
     disclaimer: 'SCHEDULED published HBLR timetable times. Not real-time; not a live prediction.',
     attribution: 'Data obtained from NJ TRANSIT and redistributed by LinkWise. May not be real-time. Not licensed or endorsed by NJ TRANSIT.',
     sampleCommutes: [{
-      id: 'scheduled_morning_pi_9th',
-      name: 'Morning: Port Imperial \u2192 9th St (Scheduled)',
-      recurringDays: [1, 2, 3, 4, 5],
+      id: 'monday_nyu_flagship',
+      scheduleMode: 'arrive_by',
+      arrivalGoal: '10:30',
+      arrivalBuffer: 10,
+      walkMinutes: 10,
+      destinationLabel: 'NYU',
+      recurringDays: [1],
+      name: 'Monday: Port Imperial \u2192 NYU (9th St, Scheduled)',
       legs: [
         { serviceId: 'hblr_port_imperial_to_hblr_hoboken', preferredTime: 'next' },
         { serviceId: 'path_hoboken_to_path_9th', preferredTime: 'next' }
