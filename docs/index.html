@@ -191,11 +191,17 @@
       margin: 0;
     }
     .shots img {
+      /* Images are captured at 2x device-scale-factor from a 430px-wide desktop
+         viewport. Capping max-width at that CSS size keeps them at native
+         resolution (crisp on Retina/HiDPI) instead of upscaling past their
+         natural dimensions; width:100% still lets them shrink on narrow screens. */
       width: 100%;
+      max-width: 430px;
       height: auto;
       border: 1px solid var(--border);
       border-radius: 14px;
       display: block;
+      margin: 0 auto;
       background: var(--card-2);
     }
     .shots figcaption {
