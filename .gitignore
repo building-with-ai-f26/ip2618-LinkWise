@@ -28,3 +28,12 @@ build/
 out/
 .DS_Store
 *.log
+
+# Build 3: raw GTFS downloads & generated corridor schedule files.
+# These are produced locally by tools/build_schedules.mjs. Do NOT commit them:
+#  - NJ TRANSIT terms require a registered developer account to redistribute.
+#  - PATH/PANYNJ redistribution permission is not yet confirmed.
+# Keep source feeds and generated datasets out of the public repo until approved.
+tools/.gtfs_cache/
+docs/app/data/path_schedule.json
+docs/app/data/hblr_schedule.json

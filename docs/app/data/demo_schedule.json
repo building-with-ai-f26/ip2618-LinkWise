@@ -1,0 +1,81 @@
+{
+  "_meta": {
+    "dataBasis": "demo",
+    "source": "LinkWise synthetic DEMO (illustrative)",
+    "sourceUrl": "n/a",
+    "generatedBy": "hand-authored public demo dataset",
+    "serviceStart": "20250101",
+    "serviceEnd": "20301231",
+    "disclaimer": "ILLUSTRATIVE DEMO DATA. All departure and arrival times below are SIMULATED, hand-authored examples for a public product demo. They are NOT real, published, or live PATH / NJ TRANSIT / Hudson-Bergen Light Rail schedules, and must never be shown as SCHEDULED or LIVE. Real published GTFS schedules are generated locally by tools/build_schedules.mjs and are git-ignored pending NJ TRANSIT registration and PATH redistribution permission. This file lets the full arrive-by workflow run publicly on honest, clearly-labeled synthetic data.",
+    "labeling": "The app renders every leg powered by this file with a DEMO badge and a 'simulated, not real/live' note.",
+    "widowNote": "The service window is intentionally wide (2025-2030) so the demo never shows UNAVAILABLE due to a stale date; it is NOT a claim that these are the operating dates of any real service."
+  },
+  "operators": [
+    { "id": "HBLR", "name": "Hudson-Bergen Light Rail", "shortName": "Light Rail", "color": "#fb7185" },
+    { "id": "PATH", "name": "PATH", "shortName": "PATH", "color": "#3b82f6" }
+  ],
+  "stations": [
+    { "id": "hblr_port_imperial", "operator": "HBLR", "name": "Port Imperial" },
+    { "id": "hblr_hoboken", "operator": "HBLR", "name": "Hoboken Terminal" },
+    { "id": "path_hoboken", "operator": "PATH", "name": "Hoboken" },
+    { "id": "path_9th", "operator": "PATH", "name": "9th Street" }
+  ],
+  "services": [
+    {
+      "id": "hblr_port_imperial_to_hblr_hoboken",
+      "operator": "HBLR",
+      "origin": "hblr_port_imperial",
+      "destination": "hblr_hoboken",
+      "direction": "Southbound toward Hoboken (DEMO)",
+      "line": "Light Rail",
+      "dataBasis": "demo",
+      "calendars": {
+        "wk": { "days": [1, 2, 3, 4, 5], "start": "20250101", "end": "20301231", "add": [], "except": [] }
+      },
+      "trips": [
+        { "cal": "wk", "depMin": 476, "arrMin": 488 },
+        { "cal": "wk", "depMin": 488, "arrMin": 500 },
+        { "cal": "wk", "depMin": 570, "arrMin": 582 },
+        { "cal": "wk", "depMin": 580, "arrMin": 592 },
+        { "cal": "wk", "depMin": 590, "arrMin": 602 },
+        { "cal": "wk", "depMin": 600, "arrMin": 612 }
+      ]
+    },
+    {
+      "id": "path_hoboken_to_path_9th",
+      "operator": "PATH",
+      "origin": "path_hoboken",
+      "destination": "path_9th",
+      "direction": "33rd Street-bound via Christopher St (DEMO)",
+      "line": "PATH",
+      "dataBasis": "demo",
+      "calendars": {
+        "wk": { "days": [1, 2, 3, 4, 5], "start": "20250101", "end": "20301231", "add": [], "except": [] }
+      },
+      "trips": [
+        { "cal": "wk", "depMin": 497, "arrMin": 507 },
+        { "cal": "wk", "depMin": 510, "arrMin": 520 },
+        { "cal": "wk", "depMin": 590, "arrMin": 600 },
+        { "cal": "wk", "depMin": 598, "arrMin": 608 },
+        { "cal": "wk", "depMin": 606, "arrMin": 616 },
+        { "cal": "wk", "depMin": 614, "arrMin": 624 }
+      ]
+    }
+  ],
+  "sampleCommutes": [
+    {
+      "id": "monday_nyu_flagship",
+      "name": "Monday \u2192 NYU (Port Imperial \u00b7 DEMO)",
+      "scheduleMode": "arrive_by",
+      "arrivalGoal": "10:30",
+      "arrivalBuffer": 10,
+      "walkMinutes": 10,
+      "destinationLabel": "NYU",
+      "recurringDays": [1],
+      "legs": [
+        { "serviceId": "hblr_port_imperial_to_hblr_hoboken", "preferredTime": "next" },
+        { "serviceId": "path_hoboken_to_path_9th", "preferredTime": "next" }
+      ]
+    }
+  ]
+}
