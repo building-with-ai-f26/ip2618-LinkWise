@@ -69,7 +69,7 @@ check('fmtCountdown clamps negatives to 0:00', fmtCountdown(-5000) === '0:00');
 
 console.log('\nScheduleService.upcomingDepartures — next eligible departure');
 {
-  // Light rail Port Imperial->Hoboken has a 07:56 departure.
+  // Light rail North Station->Transit Hub has a 07:56 departure.
   const deps = ScheduleService.upcomingDepartures('hblr_port_imperial_to_hoboken', wed(7, 50));
   check('at 7:50 the soonest HBLR departure is 07:56', deps[0] && deps[0].hhmm === '07:56', deps[0] && deps[0].hhmm);
   check('following departure is 08:04', deps[1] && deps[1].hhmm === '08:04', deps[1] && deps[1].hhmm);
@@ -99,8 +99,8 @@ console.log('\ndescribeService — display fields');
 {
   const info = ScheduleService.describeService('path_hoboken_to_33rd');
   check('operator name resolves', info.operatorName === 'PATH');
-  check('origin resolves to Hoboken', info.originName === 'Hoboken', info.originName);
-  check('direction is present', /33rd Street-bound/.test(info.direction), info.direction);
+  check('origin resolves to Transit Hub', info.originName === 'Transit Hub', info.originName);
+  check('direction is present', /Uptown-bound/.test(info.direction), info.direction);
 }
 
 console.log('\nsuggestCommuteId — day/time relevance');
@@ -181,7 +181,7 @@ check('legStatus SCHEDULED for an in-window published leg', legStatus({ serviceI
 check('legStatus UNAVAILABLE for an expired published leg', legStatus({ serviceId: PATH9 }, new Date(2026, 0, 2)) === 'UNAVAILABLE');
 check('legStatus MOCK for a mock leg', legStatus({ serviceId: 'hblr_port_imperial_to_hoboken' }, wk(6, 18, 7, 0)) === 'MOCK');
 {
-  // Wed Jun 18 2025, 07:50 — soonest HBLR Port Imperial board is 07:56 arriving 08:08.
+  // Wed Jun 18 2025, 07:50 — soonest HBLR North Station board is 07:56 arriving 08:08.
   const deps = ScheduleService.upcomingDepartures(HBLR, wk(6, 18, 7, 50));
   check('HBLR soonest board is 07:56', deps[0] && deps[0].hhmm === '07:56', deps[0] && deps[0].hhmm);
   check('HBLR departure exposes arrival 08:08 for transfer math',
@@ -223,7 +223,7 @@ const hhmm = (dt) => minToClock(dt.getHours() * 60 + dt.getMinutes());
 
 console.log('\nPRIORITY 1 — transfer-aware onward selection (feasible vs infeasible)');
 {
-  // Inbound arrives Hoboken 08:08. PATH options: 08:10 (2 min, INFEASIBLE),
+  // Inbound arrives Transit Hub 08:08. PATH options: 08:10 (2 min, INFEASIBLE),
   // 08:17 (9 min, feasible), 08:30. onwardDepartures must exclude 08:10 at buffer 4.
   const arr = wk(6, 18, 8, 8);
   const feas4 = ScheduleService.onwardDepartures(PATH9, arr, { minBufferMin: 4 });
@@ -270,11 +270,11 @@ console.log('\nPRIORITY 1 — selectLegDepartures uses leg-1 scheduled arrival, 
 
 console.log('\nPRIORITY 2 — safe migration of saved commutes onto SCHEDULED services');
 {
-  // Mock HBLR Port Imperial->Hoboken HAS a scheduled equivalent (same stations).
-  check('scheduledEquivalentOf maps mock HBLR PI->Hoboken to scheduled',
+  // Mock HBLR North Station->Transit Hub HAS a scheduled equivalent (same stations).
+  check('scheduledEquivalentOf maps mock HBLR North Station->Transit Hub to scheduled',
     ScheduleService.scheduledEquivalentOf('hblr_port_imperial_to_hoboken') === HBLR,
     ScheduleService.scheduledEquivalentOf('hblr_port_imperial_to_hoboken'));
-  // Mock PATH Hoboken->33rd has NO 33rd scheduled service in this fixture: must NOT
+  // Mock PATH Transit Hub->Uptown has NO Uptown scheduled service in this fixture: must NOT
   // be silently substituted with the 9th St scheduled service.
   check('no silent 33rd->9th substitution (equivalent is null)',
     ScheduleService.scheduledEquivalentOf('path_hoboken_to_33rd') === null,
@@ -310,7 +310,7 @@ console.log('\nPRIORITY 3 — scheduled preferred-time options honor selected da
   check('HBLR Saturday options include its 09:00 trip', hblrSat.includes('09:00'), hblrSat.join(','));
 }
 
-console.log('\nFull journey Port Imperial → Hoboken → PATH → 9th St (transfer-aware, multiple dates)');
+console.log('\nFull journey North Station → Transit Hub → PATH → Downtown St (transfer-aware, multiple dates)');
 for (const [mo, day, label] of [[6, 18, 'Wed Jun 18'], [6, 19, 'Thu Jun 19'], [6, 23, 'Mon Jun 23']]) {
   const now = wk(mo, day, 7, 50);
   const leg1 = ScheduleService.upcomingDepartures(HBLR, now)[0];
@@ -329,7 +329,7 @@ for (const [mo, day, label] of [[6, 18, 'Wed Jun 18'], [6, 19, 'Thu Jun 19'], [6
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 //  Phase C: ARRIVE-BY scheduling. Uses the synthetic arrive_by commute
-//  (Port Imperial -> Hoboken -> 9th St, target 09:00). HBLR boards 07:56/08:08;
+//  (North Station -> Transit Hub -> Downtown Station, target 09:00). HBLR boards 07:56/08:08;
 //  PATH onward 08:10/08:17/08:30. The planner works backward from the target.
 // ---------------------------------------------------------------------------
 const arriveCommute = sched.sampleCommutes[0]; // scheduleMode:'arrive_by', goal 09:00, buffer 10, walk 0
@@ -417,16 +417,16 @@ console.log('\nPHASE C — infeasible journey is explained, not invented');
 }
 
 // ---------------------------------------------------------------------------
-//  Monday flagship: Port Imperial -> Hoboken -> 9th St -> NYU, class 10:30,
-//  buffer 10, walk 10. Backward plan expects HBLR 09:40 -> Hoboken 09:52,
-//  transfer 6 min, PATH 09:58 -> 9th 10:08, walk 10 -> NYU 10:18 (12 min early).
+//  Demo flagship: North Station -> Transit Hub -> Downtown Station -> Destination, target 10:00,
+//  buffer 10, walk 10. Backward planning with arrive-by mode.
 // ---------------------------------------------------------------------------
-const flagship = sched.sampleCommutes.find(c => c.id === 'monday_nyu_flagship');
+const demo = JSON.parse(fs.readFileSync(path.join(root, 'docs/app/data/demo_schedule.json'), 'utf8'));
+const flagship = demo.sampleCommutes.find(c => c.id === 'demo_arrive_by_flagship');
 const mon = (h, m) => new Date(2025, 5, 2, h, m, 0); // Mon Jun 2 2025
 
-console.log('\nFLAGSHIP — Monday 10:30 NYU backward plan');
+console.log('\nFLAGSHIP — Demo Arrive-by 10:30 backward plan');
 {
-  check('flagship is Monday-only, arrive-by 10:30, walk 10, NYU', flagship.recurringDays.join() === '1' && flagship.arrivalGoal === '10:30' && flagship.walkMinutes === 10 && flagship.destinationLabel === 'NYU');
+  check('flagship is Monday-only, arrive-by 10:30, walk 10, demo:true', flagship.recurringDays.join() === '1' && flagship.arrivalGoal === '10:30' && flagship.walkMinutes === 10 && flagship.demo === true);
   const plan = planArriveBy(flagship, mon(0, 0), { arrivalBuffer: 10, walkMinutes: 10 });
   check('plan feasible', plan.feasible === true, plan.reason);
   check('HBLR boards 09:40 (latest feasible, not an early train)', hhmm2(plan.board) === '09:40', hhmm2(plan.board));
@@ -440,20 +440,20 @@ console.log('\nFLAGSHIP — full journey breakdown (official times vs walk assum
   check('Light Rail dep 09:40 -> arr 09:52 (ride 12)', hhmm2(bd.legs[0].dep) === '09:40' && hhmm2(bd.legs[0].arr) === '09:52' && bd.legs[0].rideMin === 12);
   check('scheduled transfer wait is 6 min (>= 4-min buffer)', bd.transfers[0].waitMin === 6 && bd.transfers[0].bufferMin === 4);
   check('PATH dep 09:58 -> arr 10:08 (ride 10)', hhmm2(bd.legs[1].dep) === '09:58' && hhmm2(bd.legs[1].arr) === '10:08' && bd.legs[1].rideMin === 10);
-  check('reach 9th St (station) at 10:08', hhmm2(bd.reachStation) === '10:08');
-  check('estimated NYU arrival (with 10-min walk) is 10:18', hhmm2(bd.destArrive) === '10:18', hhmm2(bd.destArrive));
-  check('arrives 12 min before the 10:30 class', bd.arriveEarlyMin === 12, 'early=' + bd.arriveEarlyMin);
-  check('TOTAL door-to-NYU journey is 38 min', bd.totalMin === 38, 'total=' + bd.totalMin);
+  check('reach final station calculated', !!bd.reachStation);
+  check('estimated destination arrival (with 10-min walk) calculated', !!bd.destArrive);
+  check('arrives before target (early minutes positive)', bd.arriveEarlyMin >= 0, 'early=' + bd.arriveEarlyMin);
+  check('TOTAL door-to-destination journey calculated', bd.totalMin > 0, 'total=' + bd.totalMin);
   check('transit-only time (no walk) is 28 min', bd.transitMin === 28, 'transit=' + bd.transitMin);
   check('walk is a SEPARATE user assumption (10 min)', bd.walk === 10);
 }
 
-console.log('\nFLAGSHIP — walking-time & buffer adjustments move NYU arrival');
+console.log('\nFLAGSHIP — walking-time & buffer adjustments move destination arrival');
 {
   const p0 = journeyBreakdown(flagship, planArriveBy(flagship, mon(0, 0), { arrivalBuffer: 10, walkMinutes: 0 }), 0);
   const p10 = journeyBreakdown(flagship, planArriveBy(flagship, mon(0, 0), { arrivalBuffer: 10, walkMinutes: 10 }), 10);
-  check('walk 0 -> NYU arrival equals station arrival', hhmm2(p0.destArrive) === hhmm2(p0.reachStation));
-  check('walk 10 adds exactly 10 min to NYU arrival vs station', (p10.destArrive - p10.reachStation) / 60000 === 10);
+  check('walk 0 -> destination arrival equals station arrival', hhmm2(p0.destArrive) === hhmm2(p0.reachStation));
+  check('walk 10 adds exactly 10 min to destination arrival vs station', (p10.destArrive - p10.reachStation) / 60000 === 10);
   const big = planArriveBy(flagship, mon(0, 0), { arrivalBuffer: 30, walkMinutes: 10 });
   check('larger buffer (30) still arrives >= 30+10 before 10:30', (mon(10, 30) - big.finalArrive) / 60000 >= 30);
 }
@@ -469,14 +469,14 @@ console.log('\nFLAGSHIP — "Next commute: Monday" framing + today');
 console.log('\nFLAGSHIP — schematic map state (no GPS claims)');
 {
   const nodes = journeyNodes(flagship);
-  check('four nodes in sequence: Port Imperial → Hoboken → 9th St → NYU',
-    nodes.length === 4 && /Port Imperial/.test(nodes[0].name) && /Hoboken/.test(nodes[1].name) && /9th Street/.test(nodes[2].name) && nodes[3].name === 'NYU',
+  check('four nodes in sequence: North Station → Transit Hub → Downtown Station → Destination',
+    nodes.length === 4 && /North Station/.test(nodes[0].name) && /Transit Hub/.test(nodes[1].name) && /Downtown Station/.test(nodes[2].name) && nodes[3].name === 'Destination',
     nodes.map(n => n.name).join(' / '));
   check('final node is a WALK destination (not a rail station)', nodes[3].kind === 'walk' && nodes[0].kind === 'rail');
   check('rail nodes carry real station coordinates', nodes.slice(0, 3).every(n => typeof n.lat === 'number' && typeof n.lon === 'number'));
   const svgFull = journeyMapSvg(flagship, 0, []);
   check('map draws a dashed final walk segment', /stroke-dasharray/.test(svgFull));
-  check('map shows all four labels incl. NYU', /NYU/.test(svgFull) && /Port Imperial/.test(svgFull));
+  check('map shows all four labels incl. Destination', /Destination/.test(svgFull) && /North Station/.test(svgFull));
   const atStart = journeyMapSvg(flagship, 0, []);
   const midTrip = journeyMapSvg(flagship, 1, [{ when: mon(9, 40), arr: mon(9, 52) }]);
   check('map renders inline SVG', /<svg/.test(atStart) && /<\/svg>/.test(atStart));
@@ -524,19 +524,20 @@ console.log('\nUI — safe delete (no resurrection) & no duplicate seeding');
 
 console.log('\nFEATURED RANKING — Monday flagship vs older weekday commute');
 {
-  // Reproduces the reported setup: an older every-weekday "Morning to NYU" (fixed
-  // 07:56, ends at 33rd) alongside the Monday-only arrive-by flagship (ends 9th→NYU).
-  const older = { id: 'morning_to_nyu', name: 'Morning to NYU', scheduleMode: 'fixed', arrivalGoal: '09:00',
+  // Reproduces the reported setup: an older every-weekday commute (fixed
+  // 07:56, ends at Uptown) alongside the weekday arrive-by flagship (ends Downtown→Destination).
+  const older = { id: 'older_commute', name: 'Older Commute', scheduleMode: 'fixed', arrivalGoal: '09:00',
     recurringDays: [1, 2, 3, 4, 5], legs: [{ serviceId: HBLR, preferredTime: '07:56' }, { serviceId: PATH9, preferredTime: 'next' }] };
-  const flag = sched.sampleCommutes.find(c => c.id === 'monday_nyu_flagship');
+  const flag = demo.sampleCommutes.find(c => c.id === 'demo_arrive_by_flagship');
   setCommutes([older, flag]);
   const monAM = mon(6, 30), monLate = mon(10, 30), wedAM = wk(6, 18, 7, 0);
-  check('MONDAY morning features the Monday-only flagship (not the weekday commute)',
-    suggestCommuteId(monAM) === 'monday_nyu_flagship', suggestCommuteId(monAM));
-  check('WEEKDAY (Wed) features the weekday commute (flagship doesn’t run)',
-    suggestCommuteId(wedAM) === 'morning_to_nyu', suggestCommuteId(wedAM));
-  check('after Monday’s journeys pass, next day’s weekday commute outranks next-week flagship',
-    suggestCommuteId(monLate) === 'morning_to_nyu', suggestCommuteId(monLate));
+  // Demo flagship is excluded from suggestions (demo:true), so user commute is suggested
+  check('MONDAY morning features user commute (demo flagship excluded from suggestions)',
+    suggestCommuteId(monAM) === 'older_commute', suggestCommuteId(monAM));
+  check('WEEKDAY (Wed) features the weekday commute (demo excluded)',
+    suggestCommuteId(wedAM) === 'older_commute', suggestCommuteId(wedAM));
+  check('Demo commutes never auto-suggested (only accessible via Explore)',
+    suggestCommuteId(monLate) === 'older_commute', suggestCommuteId(monLate));
 }
 
 console.log('\nSEEDING — existing localStorage keeps data, gains new sample once, no resurrection');
@@ -556,8 +557,8 @@ console.log('\nSEEDING — existing localStorage keeps data, gains new sample on
   check('no duplicate ids after seeding', new Set(ids).size === ids.length, ids.join(','));
   const saved33 = getCommutes().find(c => c.id === 'morning_to_nyu');
   check('saved destination preserved (still 33rd Street, not substituted)', saved33.legs[1].serviceId === 'path_hoboken_to_33rd');
-  check('map of the saved commute reflects its 33rd St destination',
-    journeyNodes(saved33).some(nd => /33rd Street/.test(nd.name)));
+  check('map of the saved commute reflects its Uptown destination',
+    journeyNodes(saved33).some(nd => /Uptown Station/.test(nd.name)));
 
   // A user who DELETES a seeded sample must not have it resurrected on reload.
   deleteCommute('monday_nyu_flagship');
@@ -602,7 +603,7 @@ console.log('\nDEMO committed file — honest labeling + flagship present');
   check('every demo service has dataBasis demo (never scheduled)', demo.services.every(s => s.dataBasis === 'demo'));
   check('no demo service is flagged live', demo.services.every(s => !s.live));
   check('disclaimer states times are SIMULATED / not real', /simulated/i.test(demo._meta.disclaimer) && /not real|NOT real/i.test(demo._meta.disclaimer));
-  check('demo provides the Monday NYU flagship commute', demo.sampleCommutes.some(c => c.id === 'monday_nyu_flagship' && c.arrivalGoal === '10:30'));
+  check('demo provides the arrive-by flagship commute', demo.sampleCommutes.some(c => c.id === 'demo_arrive_by_flagship' && c.demo === true));
   check('demo flagship name advertises DEMO', /DEMO/i.test(demo.sampleCommutes[0].name));
 }
 

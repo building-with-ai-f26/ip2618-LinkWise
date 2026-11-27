@@ -15,10 +15,10 @@
     { "id": "PATH", "name": "PATH", "shortName": "PATH", "color": "#3b82f6" }
   ],
   "stations": [
-    { "id": "hblr_port_imperial", "operator": "HBLR", "name": "Port Imperial" },
-    { "id": "hblr_hoboken", "operator": "HBLR", "name": "Hoboken Terminal" },
-    { "id": "path_hoboken", "operator": "PATH", "name": "Hoboken" },
-    { "id": "path_9th", "operator": "PATH", "name": "9th Street" }
+    { "id": "hblr_port_imperial", "operator": "HBLR", "name": "North Station" },
+    { "id": "hblr_hoboken", "operator": "HBLR", "name": "Transit Hub" },
+    { "id": "path_hoboken", "operator": "PATH", "name": "Transit Hub" },
+    { "id": "path_9th", "operator": "PATH", "name": "Downtown Station" }
   ],
   "services": [
     {
@@ -26,7 +26,7 @@
       "operator": "HBLR",
       "origin": "hblr_port_imperial",
       "destination": "hblr_hoboken",
-      "direction": "Southbound toward Hoboken (DEMO)",
+      "direction": "Southbound toward Transit Hub (DEMO)",
       "line": "Light Rail",
       "dataBasis": "demo",
       "calendars": {
@@ -46,7 +46,7 @@
       "operator": "PATH",
       "origin": "path_hoboken",
       "destination": "path_9th",
-      "direction": "33rd Street-bound via Christopher St (DEMO)",
+      "direction": "Downtown-bound (DEMO)",
       "line": "PATH",
       "dataBasis": "demo",
       "calendars": {
@@ -64,13 +64,14 @@
   ],
   "sampleCommutes": [
     {
-      "id": "monday_nyu_flagship",
-      "name": "Monday \u2192 NYU (Port Imperial \u00b7 DEMO)",
+      "id": "demo_arrive_by_flagship",
+      "name": "Demo: Arrive-By Planning",
+      "demo": true,
       "scheduleMode": "arrive_by",
       "arrivalGoal": "10:30",
       "arrivalBuffer": 10,
       "walkMinutes": 10,
-      "destinationLabel": "NYU",
+      "destinationLabel": "Destination",
       "recurringDays": [1],
       "legs": [
         { "serviceId": "hblr_port_imperial_to_hblr_hoboken", "preferredTime": "next" },
