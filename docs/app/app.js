@@ -582,7 +582,7 @@ function saveCommutes() {
     if (e.name === 'QuotaExceededError') {
       showToast('⚠ Storage full — delete old commutes to free space', 'error');
     } else {
-      showToast('⚠ Could not save (check private browsing mode)', 'error');
+      showToast('Save failed · Check storage settings', 'error');
     }
     console.error('[LinkWise] saveCommutes failed:', e);
   }
@@ -1091,19 +1091,21 @@ function renderDashboard() {
   if (userCommutes.length === 0) {
     box.innerHTML = `
       <div class="welcome">
-        <h1>Welcome to LinkWise</h1>
-        <p class="welcome-lead">Your personal commuter assistant for NJ ↔ NYC connections.</p>
+        <h1>LinkWise</h1>
+        <p class="welcome-lead">Plan your commute and catch your next connection.</p>
         <div class="welcome-actions">
           <button class="btn btn-primary" id="welcomeCreateBtn">Create my commute</button>
-          <button class="btn btn-ghost" id="welcomeExploreBtn">Try a demo journey</button>
+          <button class="btn btn-ghost" id="welcomeExploreBtn">Try a live example</button>
         </div>
         <p class="welcome-note">
-          <strong>📱 Your commutes are saved on this device.</strong><br>
-          Browser-local storage means your schedules stay private and don't sync across devices.
+          <strong>📱 Saved on this device only.</strong>
         </p>
       </div>`;
     el('welcomeCreateBtn').addEventListener('click', openOnboarding);
-    el('welcomeExploreBtn').addEventListener('click', openExploreDrawer);
+    el('welcomeExploreBtn').addEventListener('click', function() {
+      // "Try a live example" directly opens the MTA LIVE demo
+      activateCommute('live_api_demo');
+    });
     
     // Show storage warning if unavailable
     if (!checkStorageAvailable()) {
@@ -1234,12 +1236,12 @@ function renderCountdown() {
   
   // Welcome screen countdown area (matches dashboard)
   if (userCommutes.length === 0) {
-    box.innerHTML = `<div class="cd-empty"><p class="hint">Create your first commute to see live departure countdowns.</p></div>`;
+    box.innerHTML = `<div class="cd-empty"><p class="hint">Create a commute to see the countdown</p></div>`;
     return;
   }
   
   if (!c || !c.legs.length) {
-    box.innerHTML = `<div class="cd-empty"><p class="hint">Open <strong>My Commutes</strong> to pick a journey and start the countdown.</p></div>`;
+    box.innerHTML = `<div class="cd-empty"><p class="hint">Select a commute to start</p></div>`;
     return;
   }
   if (activeLegIndex >= c.legs.length) activeLegIndex = c.legs.length - 1;
@@ -1364,9 +1366,9 @@ function renderCountdown() {
 
   // Urgency states (safety-conscious wording — never "run").
   let state, headline;
-  if (minsAway <= 1) { state = 'go'; headline = 'GO NOW!'; }
+  if (minsAway <= 1) { state = 'go'; headline = 'Go now'; }
   else if (minsAway <= 4) { state = 'soon'; headline = 'Leaving soon'; }
-  else { state = 'comfy'; headline = 'PLENTY OF TIME'; }
+  else { state = 'comfy'; headline = 'Comfortable'; }
 
   const legPills = c.legs.map((lg, i) => {
     const li = ScheduleService.describeService(lg.serviceId);
@@ -1413,8 +1415,7 @@ function renderCountdown() {
       ' — a scheduled departure time, not live vehicle tracking.';
   } else if (isDemo) {
     statusPill = '<span class="cd-status demo">DEMO</span>';
-    note = 'ILLUSTRATIVE DEMO — simulated departure times for demonstration only. ' +
-      'NOT real published PATH / NJ TRANSIT schedules and NOT live data.';
+    note = 'Simulated data for demonstration — not real PATH / NJ TRANSIT schedules or live data.';
   } else {
     statusPill = '<span class="cd-status mock">MOCK</span>';
     note = 'Illustrative MOCK departure data — not live or verified schedule information.';
@@ -1522,8 +1523,8 @@ function startTicking() {
     // Keep urgency state in sync without a full re-render.
     const card = timer.closest('.cd-card');
     const minsAway = msAway / 60000;
-    let state = 'comfy', headline = 'PLENTY OF TIME';
-    if (minsAway <= 1) { state = 'go'; headline = 'GO NOW!'; }
+    let state = 'comfy', headline = 'Comfortable';
+    if (minsAway <= 1) { state = 'go'; headline = 'Go now'; }
     else if (minsAway <= 4) { state = 'soon'; headline = 'Leaving soon'; }
     if (card && !card.classList.contains('state-' + state)) {
       card.className = 'cd-card state-' + state;

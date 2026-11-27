@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LinkWise · Building with AI (Fall 2026)</title>
 
+  <!-- Inter font -->
+  <link rel="preconnect" href="https://rsms.me">
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+
   <!-- PostHog analytics (US Cloud) — privacy-safe, with session-replay opt-out.
        Uses the PUBLIC project token, which is safe to expose in client-side code. -->
   <script>
@@ -51,8 +55,8 @@
       --text: #231d33;
       --muted: #6c6578;
       --border: #e7dcc7;
-      --accent: #7c3aed;      /* electric violet */
-      --accent-2: #9d4bff;
+      --accent: #6D28D9;      /* electric violet */
+      --accent-2: #8B5CF6;
       --hblr: #fb7185;        /* coral */
       --path: #3b82f6;        /* blue */
       --success: #14b8a6;     /* teal */
@@ -62,7 +66,8 @@
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "DM Sans", "Segoe UI", Roboto, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-feature-settings: 'cv11' 1;
       background: radial-gradient(1200px 600px at 50% -10%, #fffdf8 0%, var(--bg) 45%, var(--bg-bot) 100%);
       color: var(--text);
       line-height: 1.6;
@@ -217,7 +222,7 @@
     <header>
       <span class="eyebrow">NYU Stern · Building with AI · Fall 2026</span>
       <h1>LinkWise</h1>
-      <p class="tagline">Smarter connections, every day. — a personalized commuter assistant that helps NJ–NYC riders catch their transit connections through large, colorful departure countdowns.</p>
+      <p class="tagline">LinkWise helps commuters plan recurring trips and catch their next transit connection.</p>
       <div class="cta-row">
         <a class="btn" href="app/" onclick="window.posthog && posthog.capture('clicked_try_product')">Try LinkWise →</a>
         <a class="btn btn-secondary" href="#live-demo">See the Product</a>
@@ -255,7 +260,7 @@
       <p class="meta">Updated every week as we test with real users and learn what works.</p>
 
       <h3>0. Vision vs. Current Build Scope</h3>
-      <p><strong>Long-term vision:</strong> LinkWise is a <em>personalized commute assistant</em> — <em>Smarter connections, every day.</em> It helps people who ride the same NJ–NYC routes daily make smarter connections with real-time departure countdowns, saved daily routes, and personalized preferences across PATH, NJ Transit Rail, and Hudson-Bergen Light Rail. Future versions add location-triggered alerts, verified platform/track assignments, crowding estimates, speed-vs-comfort recommendations, and live operator integrations.</p>
+      <p><strong>Long-term vision:</strong> LinkWise helps commuters plan recurring trips across PATH, NJ Transit Rail, and Hudson-Bergen Light Rail. Save multi-leg commutes with day-of-week recurrence, see per-second countdowns to your next departure, and plan arrive-by journeys with transfer buffer enforcement. Future versions may add location-triggered alerts, verified platform/track assignments, crowding data, and live operator integrations.</p>
       <p><strong>Current build scope (Build 3 prototype):</strong> A personalized, <em>arrive-by</em> commute assistant. The rider saves multi-leg commutes; the app features the one relevant upcoming journey (by day, recurrence, and arrival goal) and offers a "My Commutes" drawer to view/edit/delete others. For a target arrival time (e.g. a 10:00 AM class or meeting), the <strong>arrive-by planner</strong> works backward across multi-leg transit connections (Hudson-Bergen Light Rail + PATH in the demo), enforces a minimum transfer buffer, and recommends the latest feasible departure; a large per-second countdown then guides each leg, anchoring connections on the previous train's scheduled arrival. The demonstration shows a full breakdown (per-leg depart/arrive, transfer wait, final walk, total time, minutes early) and a compact schematic map.</p>
       <p><strong>Hosting, storage &amp; data labeling (v3):</strong> Static site on <strong>GitHub Pages</strong> (<code>/docs</code>); state in browser <strong>localStorage</strong> (no backend, no accounts, no database). Data sources are always labeled: <strong>LIVE</strong> (official keyless MTA GTFS-Realtime demo), <strong>SCHEDULED</strong> (real PATH/HBLR GTFS — used only on authorized local machines; the generated files are git-ignored pending NJ TRANSIT registration + PATH redistribution permission), <strong>DEMO</strong> (a clearly-labeled synthetic dataset that powers the full public arrive-by workflow without real restricted data), <strong>MOCK</strong> (illustrative), and <strong>UNAVAILABLE</strong>. Synthetic data is never presented as real, and no “live” times are fabricated. Security posture is documented in <a href="https://github.com/building-with-ai-f26/ip2618-LinkWise/blob/main/SECURITY.md">SECURITY.md</a>. <strong>Limitations:</strong> real published PATH/HBLR schedules stay local until redistribution is authorized; location alerts, verified platform/track, and crowding data remain out of scope.</p>
 

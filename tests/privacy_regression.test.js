@@ -63,31 +63,32 @@ function createSandbox() {
 
 console.log('\n=== Build 4: Privacy Regression Tests ===\n');
 
-console.log('Public Schedule Files — No Personal Information');
+console.log('Public Schedule Files — No Personal Destination Information');
 {
-  const personalKeywords = ['port imperial', 'nyu', 'monday.*nyu', 'evening home', 'morning to nyu'];
+  // Public transit station names (Port Imperial, Hoboken Terminal, 33rd Street, 9th Street) are NOT personal information.
+  // Personal information is: specific destinations like NYU, personal class schedules, personalized patterns.
   
   // Check mock_schedule.json
   const mockJson = JSON.stringify(mockSchedule).toLowerCase();
-  check('mock_schedule.json: no "port imperial"', !mockJson.includes('port imperial'));
-  check('mock_schedule.json: no "nyu"', !mockJson.includes('nyu'));
-  check('mock_schedule.json: no "morning to nyu"', !mockJson.includes('morning to nyu'));
-  check('mock_schedule.json: no "evening home"', !mockJson.includes('evening home'));
+  check('mock_schedule.json: no "nyu" destination', !mockJson.includes('nyu'));
+  check('mock_schedule.json: no "morning to nyu" sample', !mockJson.includes('morning to nyu'));
+  check('mock_schedule.json: no "evening home" sample', !mockJson.includes('evening home'));
+  check('mock_schedule.json: uses real public station names', 
+    mockJson.includes('port imperial') && mockJson.includes('hoboken terminal'));
   
   // Check demo_schedule.json
   const demoJson = JSON.stringify(demoSchedule).toLowerCase();
-  check('demo_schedule.json: no "port imperial"', !demoJson.includes('port imperial'));
-  check('demo_schedule.json: no "nyu" destination', !demoJson.includes('"nyu"'));
-  check('demo_schedule.json: stations use generic names', 
-    demoJson.includes('north station') || demoJson.includes('transit hub'));
+  check('demo_schedule.json: no "nyu" destination', !demoJson.includes('nyu'));
+  check('demo_schedule.json: uses real public station names', 
+    demoJson.includes('port imperial') && demoJson.includes('hoboken terminal'));
   
   // Check flagship journey name
   const flagship = demoSchedule.sampleCommutes?.find(c => c.id.includes('flagship') || c.id.includes('demo'));
   check('Flagship journey exists', !!flagship);
   check('Flagship journey is marked demo: true', flagship?.demo === true, 'demo=' + flagship?.demo);
   check('Flagship name is generic', !flagship?.name.toLowerCase().includes('nyu'));
-  check('Flagship destination is generic', 
-    !flagship?.destinationLabel || flagship.destinationLabel.toLowerCase() !== 'nyu',
+  check('Flagship destination is not personal (not NYU)', 
+    flagship?.destinationLabel && flagship.destinationLabel.toLowerCase() !== 'nyu',
     'destinationLabel=' + flagship?.destinationLabel);
 }
 

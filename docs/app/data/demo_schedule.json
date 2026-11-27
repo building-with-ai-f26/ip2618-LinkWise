@@ -15,10 +15,10 @@
     { "id": "PATH", "name": "PATH", "shortName": "PATH", "color": "#3b82f6" }
   ],
   "stations": [
-    { "id": "hblr_port_imperial", "operator": "HBLR", "name": "North Station" },
-    { "id": "hblr_hoboken", "operator": "HBLR", "name": "Transit Hub" },
-    { "id": "path_hoboken", "operator": "PATH", "name": "Transit Hub" },
-    { "id": "path_9th", "operator": "PATH", "name": "Downtown Station" }
+    { "id": "hblr_port_imperial", "operator": "HBLR", "name": "Port Imperial" },
+    { "id": "hblr_hoboken", "operator": "HBLR", "name": "Hoboken Terminal" },
+    { "id": "path_hoboken", "operator": "PATH", "name": "Hoboken Terminal" },
+    { "id": "path_33rd", "operator": "PATH", "name": "33rd Street" }
   ],
   "services": [
     {
@@ -26,7 +26,7 @@
       "operator": "HBLR",
       "origin": "hblr_port_imperial",
       "destination": "hblr_hoboken",
-      "direction": "Southbound toward Transit Hub (DEMO)",
+      "direction": "Southbound toward Hoboken Terminal (DEMO)",
       "line": "Light Rail",
       "dataBasis": "demo",
       "calendars": {
@@ -42,12 +42,12 @@
       ]
     },
     {
-      "id": "path_hoboken_to_path_9th",
+      "id": "path_hoboken_to_path_33rd",
       "operator": "PATH",
       "origin": "path_hoboken",
-      "destination": "path_9th",
-      "direction": "Downtown-bound (DEMO)",
-      "line": "PATH",
+      "destination": "path_33rd",
+      "direction": "Uptown-bound (DEMO)",
+      "line": "Hoboken \u2013 33rd Street",
       "dataBasis": "demo",
       "calendars": {
         "wk": { "days": [1, 2, 3, 4, 5], "start": "20250101", "end": "20301231", "add": [], "except": [] }
@@ -65,7 +65,7 @@
   "sampleCommutes": [
     {
       "id": "demo_arrive_by_flagship",
-      "name": "Demo: Arrive-By Planning",
+      "name": "Demo: Multi-Leg Journey",
       "demo": true,
       "scheduleMode": "arrive_by",
       "arrivalGoal": "10:30",
@@ -75,7 +75,7 @@
       "recurringDays": [1],
       "legs": [
         { "serviceId": "hblr_port_imperial_to_hblr_hoboken", "preferredTime": "next" },
-        { "serviceId": "path_hoboken_to_path_9th", "preferredTime": "next" }
+        { "serviceId": "path_hoboken_to_path_33rd", "preferredTime": "next" }
       ]
     }
   ]
