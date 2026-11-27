@@ -34,7 +34,7 @@ const sandbox = {
   localStorage: (() => { const m = {}; return {
     getItem: k => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v); }, removeItem: k => { delete m[k]; }
   }; })(),
-  setInterval: () => 0, clearInterval: noop,
+  setInterval: () => 0, clearInterval: noop, setTimeout: () => 0, clearTimeout: noop,
   TextDecoder: globalThis.TextDecoder, Buffer,  // native in browsers; supplied to the sandbox for tests
   // init() fetches the schedule; resolve it so boot succeeds.
   fetch: async () => ({ ok: true, status: 200, json: async () => schedule }),
@@ -105,12 +105,12 @@ console.log('\ndescribeService — display fields');
 
 console.log('\nsuggestCommuteId — day/time relevance');
 {
-  // Seed the two sample commutes into the loaded `commutes` array via localStorage path.
+  // Build 4: Personal samples removed. The only seeded sample is live_api_demo.
   // suggestCommuteId reads module-level `commutes`; it was seeded during boot.
   const morningId = suggestCommuteId(wed(7, 30)); // morning window
-  check('morning time suggests "Morning to NYU"', morningId === 'morning_to_nyu', morningId);
+  check('morning time suggests "live_api_demo" (only sample)', morningId === 'live_api_demo', morningId);
   const eveningId = suggestCommuteId(wed(17, 0)); // evening window
-  check('evening time suggests "Evening Home"', eveningId === 'evening_home', eveningId);
+  check('evening time suggests "live_api_demo" (only sample)', eveningId === 'live_api_demo', eveningId);
 }
 
 // ---------------------------------------------------------------------------

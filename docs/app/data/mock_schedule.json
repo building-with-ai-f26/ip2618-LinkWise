@@ -100,30 +100,8 @@
 
   "sampleCommutes": [
     {
-      "id": "morning_to_nyu",
-      "name": "Morning to NYU",
-      "scheduleMode": "fixed",
-      "arrivalGoal": "09:00",
-      "recurringDays": [1, 2, 3, 4, 5],
-      "legs": [
-        { "serviceId": "hblr_port_imperial_to_hoboken", "preferredTime": "07:56" },
-        { "serviceId": "path_hoboken_to_33rd", "preferredTime": "next" }
-      ]
-    },
-    {
-      "id": "evening_home",
-      "name": "Evening Home",
-      "scheduleMode": "fixed",
-      "arrivalGoal": null,
-      "recurringDays": [1, 2, 3, 4, 5],
-      "legs": [
-        { "serviceId": "path_9th_to_hoboken", "preferredTime": "17:12" },
-        { "serviceId": "hblr_hoboken_to_port_imperial", "preferredTime": "next" }
-      ]
-    },
-    {
       "id": "live_api_demo",
-      "name": "Live API Demo (MTA)",
+      "name": "Explore Live Trains (MTA Demo)",
       "demo": true,
       "scheduleMode": "next_available",
       "arrivalGoal": null,

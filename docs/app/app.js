@@ -15,6 +15,8 @@
 
 const COMMUTES_KEY = 'linkwise_commutes_v1';
 const SEEDED_KEY = 'linkwise_seeded_samples_v1';   // ids of sample commutes ever seeded (prevents duplicate accumulation)
+const MIGRATION_KEY = 'linkwise_migrated_v2';       // one-time privacy migration flag
+const PERSONAL_SAMPLE_IDS = ['morning_to_nyu', 'evening_home']; // removed in Build 4
 
 // A "recommended" (comfortable) transfer threshold for DISPLAY ONLY. The planner
 // still uses MIN_TRANSFER_BUFFER_MIN (4) as the feasibility floor; this larger
@@ -56,6 +58,32 @@ function showFatalError(err) {
 
 const esc = s => String(s).replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// ---- Toast notifications (save feedback, warnings) ------------------------
+
+function showToast(message, type = 'info') {
+  let toast = document.getElementById('toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast';
+    document.body.appendChild(toast);
+  }
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+function checkStorageAvailable() {
+  try {
+    const test = '__storage_test__';
+    localStorage.setItem(test, test);
+    localStorage.removeItem(test);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 // ===========================================================================
 //  ScheduleService — the ONLY place that knows about the data source.
@@ -490,6 +518,34 @@ function sampleToCommute(c) {
 // featured journey or the "My Commutes" list.
 function isDemoCommute(c) { return !!(c && (c.demo || c.id === 'live_api_demo')); }
 
+// One-time migration: convert removed personal samples to user-owned commutes so
+// existing users keep their data. New visitors never see these samples.
+function migratePersonalSamples() {
+  try {
+    const migrated = localStorage.getItem(MIGRATION_KEY);
+    if (migrated) return false; // already migrated
+    
+    let changed = false;
+    commutes = commutes.map(c => {
+      if (PERSONAL_SAMPLE_IDS.includes(c.id)) {
+        // Convert to user-owned with new ID so it's clearly theirs
+        changed = true;
+        return { ...c, id: randId('cmt_'), _migratedFromSample: true };
+      }
+      return c;
+    });
+    
+    if (changed) {
+      console.log('[LinkWise] Migrated', PERSONAL_SAMPLE_IDS.length, 'personal samples to user commutes');
+    }
+    localStorage.setItem(MIGRATION_KEY, 'true');
+    return changed;
+  } catch (e) {
+    console.error('[LinkWise] Migration failed:', e);
+    return false;
+  }
+}
+
 // Seed each sample commute AT MOST ONCE EVER (tracked in SEEDED_KEY), so renamed
 // or newly-added samples never pile up as duplicates and a user's deletion is
 // respected (a seeded id is never re-added). Existing localStorage is preserved.
@@ -500,7 +556,10 @@ function loadCommutes() {
   if (!Array.isArray(seeded)) seeded = [];
   commutes = Array.isArray(saved) ? saved : [];
 
-  let changed = !Array.isArray(saved);
+  // Run one-time migration for existing users
+  const migrated = migratePersonalSamples();
+
+  let changed = !Array.isArray(saved) || migrated;
   for (const s of ScheduleService.sampleCommutes) {
     if (seeded.includes(s.id)) continue;             // already seeded once — never again
     if (!commutes.some(c => c.id === s.id)) { commutes.push(sampleToCommute(s)); }
@@ -516,7 +575,17 @@ function loadCommutes() {
   if (changed) { saveCommutes(); try { localStorage.setItem(SEEDED_KEY, JSON.stringify(seeded)); } catch {} }
 }
 function saveCommutes() {
-  try { localStorage.setItem(COMMUTES_KEY, JSON.stringify(commutes)); } catch {}
+  try {
+    localStorage.setItem(COMMUTES_KEY, JSON.stringify(commutes));
+    showToast('✓ Saved', 'success');
+  } catch (e) {
+    if (e.name === 'QuotaExceededError') {
+      showToast('⚠ Storage full — delete old commutes to free space', 'error');
+    } else {
+      showToast('⚠ Could not save (check private browsing mode)', 'error');
+    }
+    console.error('[LinkWise] saveCommutes failed:', e);
+  }
 }
 
 function randId(prefix) {
@@ -1016,6 +1085,37 @@ function modeLabel(c) {
 // featured journey itself is shown by the countdown below.
 function renderDashboard() {
   const box = el('dashboard');
+  const userCommutes = commutes.filter(c => !isDemoCommute(c));
+  
+  // Welcome screen for first-time visitors
+  if (userCommutes.length === 0) {
+    box.innerHTML = `
+      <div class="welcome">
+        <h1>Welcome to LinkWise</h1>
+        <p class="welcome-lead">Your personal commuter assistant for NJ ↔ NYC connections.</p>
+        <div class="welcome-actions">
+          <button class="btn btn-primary" id="welcomeCreateBtn">Create my commute</button>
+          <button class="btn btn-ghost" id="welcomeExploreBtn">Try a demo journey</button>
+        </div>
+        <p class="welcome-note">
+          <strong>📱 Your commutes are saved on this device.</strong><br>
+          Browser-local storage means your schedules stay private and don't sync across devices.
+        </p>
+      </div>`;
+    el('welcomeCreateBtn').addEventListener('click', openOnboarding);
+    el('welcomeExploreBtn').addEventListener('click', openExploreDrawer);
+    
+    // Show storage warning if unavailable
+    if (!checkStorageAvailable()) {
+      const warn = document.createElement('div');
+      warn.className = 'storage-warning';
+      warn.innerHTML = '⚠️ <strong>Private browsing detected.</strong> Your commutes won\'t be saved. Use a standard browser window to keep your schedules.';
+      box.insertBefore(warn, box.firstChild);
+    }
+    return;
+  }
+  
+  // Returning user: show dashboard
   const c = activeCommute();
   const featuredName = c ? esc(c.name) : 'No journey selected';
   box.innerHTML = `
@@ -1130,6 +1230,14 @@ function openExploreDrawer() {
 function renderCountdown() {
   const box = el('countdown');
   const c = activeCommute();
+  const userCommutes = commutes.filter(c => !isDemoCommute(c));
+  
+  // Welcome screen countdown area (matches dashboard)
+  if (userCommutes.length === 0) {
+    box.innerHTML = `<div class="cd-empty"><p class="hint">Create your first commute to see live departure countdowns.</p></div>`;
+    return;
+  }
+  
   if (!c || !c.legs.length) {
     box.innerHTML = `<div class="cd-empty"><p class="hint">Open <strong>My Commutes</strong> to pick a journey and start the countdown.</p></div>`;
     return;
