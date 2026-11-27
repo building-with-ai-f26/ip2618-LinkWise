@@ -15,13 +15,13 @@
   ],
 
   "stations": [
-    { "id": "hblr_port_imperial", "operator": "HBLR", "name": "Port Imperial" },
-    { "id": "hblr_hoboken", "operator": "HBLR", "name": "Hoboken Terminal" },
-    { "id": "path_hoboken", "operator": "PATH", "name": "Hoboken" },
-    { "id": "path_9th", "operator": "PATH", "name": "9th Street" },
-    { "id": "path_33rd", "operator": "PATH", "name": "33rd Street" },
-    { "id": "njt_hoboken", "operator": "NJT_RAIL", "name": "Hoboken Terminal" },
-    { "id": "njt_nypenn", "operator": "NJT_RAIL", "name": "New York Penn Station" },
+    { "id": "hblr_port_imperial", "operator": "HBLR", "name": "North Station" },
+    { "id": "hblr_hoboken", "operator": "HBLR", "name": "Transit Hub" },
+    { "id": "path_hoboken", "operator": "PATH", "name": "Transit Hub" },
+    { "id": "path_9th", "operator": "PATH", "name": "Downtown Station" },
+    { "id": "path_33rd", "operator": "PATH", "name": "Uptown Station" },
+    { "id": "njt_hoboken", "operator": "NJT_RAIL", "name": "Transit Hub" },
+    { "id": "njt_nypenn", "operator": "NJT_RAIL", "name": "Central Terminal" },
     { "id": "mta_times_sq", "operator": "MTA_SUBWAY", "name": "Times Sq\u201342 St" },
     { "id": "mta_south_ferry", "operator": "MTA_SUBWAY", "name": "South Ferry" }
   ],
@@ -32,7 +32,7 @@
       "operator": "HBLR",
       "origin": "hblr_port_imperial",
       "destination": "hblr_hoboken",
-      "direction": "Southbound toward Hoboken Terminal",
+      "direction": "Southbound toward Transit Hub",
       "line": "Hudson-Bergen Light Rail",
       "validDays": [1, 2, 3, 4, 5],
       "headwayNote": "MOCK example service, roughly every ~8 min in the AM peak.",
@@ -45,7 +45,7 @@
       "operator": "HBLR",
       "origin": "hblr_hoboken",
       "destination": "hblr_port_imperial",
-      "direction": "Northbound toward Port Imperial",
+      "direction": "Northbound toward North Station",
       "line": "Hudson-Bergen Light Rail",
       "validDays": [1, 2, 3, 4, 5],
       "headwayNote": "MOCK example service, roughly every ~8 min in the PM peak.",
@@ -58,7 +58,7 @@
       "operator": "PATH",
       "origin": "path_hoboken",
       "destination": "path_33rd",
-      "direction": "33rd Street-bound (via 9th Street)",
+      "direction": "Uptown-bound",
       "line": "Hoboken \u2013 33rd Street",
       "validDays": [1, 2, 3, 4, 5],
       "stops": ["path_hoboken", "path_9th", "path_33rd"],
@@ -72,7 +72,7 @@
       "operator": "PATH",
       "origin": "path_9th",
       "destination": "path_hoboken",
-      "direction": "Hoboken-bound",
+      "direction": "Transit Hub-bound",
       "line": "33rd Street \u2013 Hoboken",
       "validDays": [1, 2, 3, 4, 5],
       "stops": ["path_9th", "path_hoboken"],
@@ -100,30 +100,8 @@
 
   "sampleCommutes": [
     {
-      "id": "morning_to_nyu",
-      "name": "Morning to NYU",
-      "scheduleMode": "fixed",
-      "arrivalGoal": "09:00",
-      "recurringDays": [1, 2, 3, 4, 5],
-      "legs": [
-        { "serviceId": "hblr_port_imperial_to_hoboken", "preferredTime": "07:56" },
-        { "serviceId": "path_hoboken_to_33rd", "preferredTime": "next" }
-      ]
-    },
-    {
-      "id": "evening_home",
-      "name": "Evening Home",
-      "scheduleMode": "fixed",
-      "arrivalGoal": null,
-      "recurringDays": [1, 2, 3, 4, 5],
-      "legs": [
-        { "serviceId": "path_9th_to_hoboken", "preferredTime": "17:12" },
-        { "serviceId": "hblr_hoboken_to_port_imperial", "preferredTime": "next" }
-      ]
-    },
-    {
       "id": "live_api_demo",
-      "name": "Live API Demo (MTA)",
+      "name": "Explore Live Trains (MTA Demo)",
       "demo": true,
       "scheduleMode": "next_available",
       "arrivalGoal": null,
