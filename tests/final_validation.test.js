@@ -80,7 +80,7 @@ console.log('VALIDATION 1: Neutral Demo Complete Workflow');
   const flagship = sb.getCommutes().find(c => c.id === 'demo_arrive_by_flagship');
   check('Demo flagship loaded', !!flagship);
   check('Flagship is marked demo:true', flagship?.demo === true);
-  check('Flagship uses generic name', flagship?.name === 'Demo: Arrive-By Planning');
+  check('Flagship uses generic name', flagship?.name === 'Demo: Multi-Leg Journey');
   check('Flagship uses generic destination', flagship?.destinationLabel === 'Destination');
   
   // Test arrive-by planning
@@ -115,15 +115,15 @@ console.log('VALIDATION 1: Neutral Demo Complete Workflow');
   // Test journey nodes (for map)
   const nodes = sb.journeyNodes(flagship);
   check('Journey has 4 nodes (2 legs + walk)', nodes.length === 4);
-  check('First node is North Station', nodes[0].name === 'North Station');
-  check('Second node is Transit Hub', nodes[1].name === 'Transit Hub');
-  check('Third node is Downtown Station', nodes[2].name === 'Downtown Station');
+  check('First node is Port Imperial', nodes[0].name === 'Port Imperial');
+  check('Second node is Hoboken Terminal', nodes[1].name === 'Hoboken Terminal');
+  check('Third node is 33rd Street', nodes[2].name === '33rd Street');
   check('Fourth node is Destination (walk)', nodes[3].name === 'Destination' && nodes[3].kind === 'walk');
   
   // Test journey map SVG generation
   const svg = sb.journeyMapSvg(flagship, 0, []);
   check('Map SVG generated', svg && svg.length > 100);
-  check('Map includes North Station', svg.includes('North Station'));
+  check('Map includes Port Imperial', svg.includes('Port Imperial'));
   check('Map includes Destination', svg.includes('Destination'));
 }
 
@@ -138,13 +138,13 @@ console.log('\nVALIDATION 2: Station Renaming Affects Only Demo/Mock');
   
   // Check mock schedule stations
   const mockStations = mockSchedule.stations;
-  check('Mock stations use generic names', mockStations.some(s => s.name === 'North Station'));
-  check('No "Port Imperial" in mock', !mockStations.some(s => s.name === 'Port Imperial'));
+  check('Mock stations use real public names', mockStations.some(s => s.name === 'Port Imperial'));
+  check('Hoboken Terminal in mock', mockStations.some(s => s.name === 'Hoboken Terminal'));
   
   // Check demo schedule stations  
   const demoStations = demoSchedule.stations;
-  check('Demo stations use generic names', demoStations.some(s => s.name === 'North Station'));
-  check('No "Port Imperial" in demo', !demoStations.some(s => s.name === 'Port Imperial'));
+  check('Demo stations use real public names', demoStations.some(s => s.name === 'Port Imperial'));
+  check('Hoboken Terminal in demo', demoStations.some(s => s.name === 'Hoboken Terminal'));
   
   // Check route IDs unchanged (critical for compatibility)
   const mockServices = mockSchedule.services;
@@ -171,7 +171,7 @@ console.log('\nVALIDATION 2: Station Renaming Affects Only Demo/Mock');
   
   check('User commute route IDs still resolve', !!service1 && !!service2);
   check('User route shows generic station names', service1.origin === 'hblr_port_imperial' && 
-    sb.ScheduleService.station('hblr_port_imperial').name === 'North Station');
+    sb.ScheduleService.station('hblr_port_imperial').name === 'Port Imperial');
 }
 
 // ===========================================================================

@@ -99,7 +99,7 @@ console.log('\ndescribeService — display fields');
 {
   const info = ScheduleService.describeService('path_hoboken_to_33rd');
   check('operator name resolves', info.operatorName === 'PATH');
-  check('origin resolves to Transit Hub', info.originName === 'Transit Hub', info.originName);
+  check('origin resolves to Hoboken Terminal', info.originName === 'Hoboken Terminal', info.originName);
   check('direction is present', /Uptown-bound/.test(info.direction), info.direction);
 }
 
@@ -421,6 +421,7 @@ console.log('\nPHASE C — infeasible journey is explained, not invented');
 //  buffer 10, walk 10. Backward planning with arrive-by mode.
 // ---------------------------------------------------------------------------
 const demo = JSON.parse(fs.readFileSync(path.join(root, 'docs/app/data/demo_schedule.json'), 'utf8'));
+ScheduleService.addScheduledDoc(demo); // Load demo data for flagship tests
 const flagship = demo.sampleCommutes.find(c => c.id === 'demo_arrive_by_flagship');
 const mon = (h, m) => new Date(2025, 5, 2, h, m, 0); // Mon Jun 2 2025
 
@@ -430,7 +431,7 @@ console.log('\nFLAGSHIP — Demo Arrive-by 10:30 backward plan');
   const plan = planArriveBy(flagship, mon(0, 0), { arrivalBuffer: 10, walkMinutes: 10 });
   check('plan feasible', plan.feasible === true, plan.reason);
   check('HBLR boards 09:40 (latest feasible, not an early train)', hhmm2(plan.board) === '09:40', hhmm2(plan.board));
-  check('final PATH arrival (9th St) is 10:08 <= 10:30-10-10 (10:10)', hhmm2(plan.finalArrive) === '10:08', hhmm2(plan.finalArrive));
+  check('final PATH arrival (33rd St) is 10:08 <= 10:30-10-10 (10:10)', hhmm2(plan.finalArrive) === '10:08', hhmm2(plan.finalArrive));
 }
 
 console.log('\nFLAGSHIP — full journey breakdown (official times vs walk assumption)');
@@ -469,14 +470,14 @@ console.log('\nFLAGSHIP — "Next commute: Monday" framing + today');
 console.log('\nFLAGSHIP — schematic map state (no GPS claims)');
 {
   const nodes = journeyNodes(flagship);
-  check('four nodes in sequence: North Station → Transit Hub → Downtown Station → Destination',
-    nodes.length === 4 && /North Station/.test(nodes[0].name) && /Transit Hub/.test(nodes[1].name) && /Downtown Station/.test(nodes[2].name) && nodes[3].name === 'Destination',
+  check('four nodes in sequence: Port Imperial → Hoboken Terminal → 33rd Street → Destination',
+    nodes.length === 4 && /Port Imperial/.test(nodes[0].name) && /Hoboken Terminal/.test(nodes[1].name) && /33rd Street/.test(nodes[2].name) && nodes[3].name === 'Destination',
     nodes.map(n => n.name).join(' / '));
   check('final node is a WALK destination (not a rail station)', nodes[3].kind === 'walk' && nodes[0].kind === 'rail');
   check('rail nodes carry real station coordinates', nodes.slice(0, 3).every(n => typeof n.lat === 'number' && typeof n.lon === 'number'));
   const svgFull = journeyMapSvg(flagship, 0, []);
   check('map draws a dashed final walk segment', /stroke-dasharray/.test(svgFull));
-  check('map shows all four labels incl. Destination', /Destination/.test(svgFull) && /North Station/.test(svgFull));
+  check('map shows all four labels incl. Destination', /Destination/.test(svgFull) && /Port Imperial/.test(svgFull));
   const atStart = journeyMapSvg(flagship, 0, []);
   const midTrip = journeyMapSvg(flagship, 1, [{ when: mon(9, 40), arr: mon(9, 52) }]);
   check('map renders inline SVG', /<svg/.test(atStart) && /<\/svg>/.test(atStart));
@@ -558,7 +559,7 @@ console.log('\nSEEDING — existing localStorage keeps data, gains new sample on
   const saved33 = getCommutes().find(c => c.id === 'morning_to_nyu');
   check('saved destination preserved (still 33rd Street, not substituted)', saved33.legs[1].serviceId === 'path_hoboken_to_33rd');
   check('map of the saved commute reflects its Uptown destination',
-    journeyNodes(saved33).some(nd => /Uptown Station/.test(nd.name)));
+    journeyNodes(saved33).some(nd => /33rd Street/.test(nd.name)));
 
   // A user who DELETES a seeded sample must not have it resurrected on reload.
   deleteCommute('monday_nyu_flagship');

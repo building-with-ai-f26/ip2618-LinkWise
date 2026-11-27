@@ -3,7 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>LinkWise — Smarter connections, every day</title>
+  <title>LinkWise</title>
+
+  <!-- Inter font -->
+  <link rel="preconnect" href="https://rsms.me">
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
 
   <!-- PostHog analytics (US Cloud) — privacy-safe, with session-replay opt-out.
        Uses the PUBLIC project token, which is safe to expose in client-side code. -->
@@ -55,8 +59,8 @@
       --border: #e7dcc7;
       --text: #231d33;
       --muted: #6c6578;
-      --brand: #7c3aed;     /* electric violet — primary actions + countdown */
-      --brand-2: #9d4bff;
+      --brand: #6D28D9;     /* electric violet — primary brand color */
+      --brand-2: #8B5CF6;   /* lighter violet for gradients */
       --hblr: #fb7185;      /* coral — Hudson-Bergen Light Rail */
       --path: #3b82f6;      /* blue — PATH */
       --success: #14b8a6;   /* bright teal — successful connections */
@@ -67,7 +71,8 @@
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-feature-settings: 'cv11' 1; /* Inter curved-tail 'l' */
       color: var(--text);
       line-height: 1.5;
       background: radial-gradient(1200px 600px at 50% -10%, #fffdf8 0%, var(--bg-top) 45%, var(--bg-bot) 100%);
@@ -80,12 +85,11 @@
     .brand { display: flex; align-items: center; gap: 11px; margin-bottom: 4px; }
     .logo {
       width: 40px; height: 40px; border-radius: 12px; flex: none;
-      background: linear-gradient(135deg, var(--brand) 0%, var(--brand-2) 100%);
+      background: var(--brand);
       display: grid; place-items: center; font-weight: 900; color: #fff; font-size: 20px;
-      box-shadow: 0 6px 18px rgba(99,102,241,.35);
     }
-    h1 { font-size: 24px; margin: 0; letter-spacing: -0.02em; }
-    .tagline { color: var(--muted); font-size: 14px; margin: 0 0 10px 51px; }
+    h1 { font-size: 24px; margin: 0; font-weight: 700; letter-spacing: -0.02em; }
+    .tagline { color: var(--muted); font-size: 14px; margin: 0 0 10px 51px; line-height: 1.4; }
     .mock-pill {
       display: inline-flex; align-items: center; gap: 6px;
       font-size: 11.5px; color: #0f766e; background: rgba(20,184,166,0.12);
@@ -368,7 +372,7 @@
       <div class="logo">L</div>
       <h1>LinkWise</h1>
     </div>
-    <p class="tagline">Smarter connections, every day.</p>
+    <p class="tagline">Plan recurring trips, catch your next connection</p>
     <span class="mock-pill">Prototype · real SCHEDULED PATH/HBLR + one LIVE MTA demo (clearly labeled)</span>
 
     <!-- Dashboard: saved commutes + suggestion + manual switch -->
